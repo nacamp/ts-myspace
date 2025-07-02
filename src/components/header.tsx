@@ -14,7 +14,7 @@ export function Header({ title }: HeaderProps) {
   const { toggleSidebar, isMobile } = useSidebar()
 
   return (
-    <header className="bg-white border-b border-gray-200 p-4">
+    <header className="border-b border-gray-200 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
@@ -25,8 +25,8 @@ export function Header({ title }: HeaderProps) {
           >
             <Menu className="h-4 w-4" />
           </Button>
-          <h2 className="text-lg font-semibold text-gray-900">
-            {isMobile ? 'Claude' : title}
+          <h2 className="text-lg font-semibold">
+            {title}
           </h2>
         </div>
         
