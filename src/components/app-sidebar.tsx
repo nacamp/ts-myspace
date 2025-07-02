@@ -21,7 +21,7 @@ import { useSidebar } from "@/components/providers/sidebar-provider";
 const menuItems = [
   { name: "홈", href: "/", icon: MessageSquare },
   { name: "설정", href: "/settings", icon: Settings },
-  { name: "도움말", href: "/help", icon: FileText },
+  { name: "freqtrade", href: "/freqtrade", icon: FileText },
 ];
 
 export function AppSidebar() {
