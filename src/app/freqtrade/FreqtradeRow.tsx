@@ -36,6 +36,7 @@ export default function FreqtradeRow({
   const [sellQty, setSellQty] = useState(String(initialSellQty ?? ""));
   const [sellPrice, setSellPrice] = useState(String(initialSellPrice ?? ""));
   const [profit, setProfit] = useState("");
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     handleCalc();
@@ -86,7 +87,7 @@ export default function FreqtradeRow({
       buyPrice: _buyPrice,
       sellPrice: _sellPrice,
     };
-    const { id:_, ...rest } = form;
+    const { id: _, ...rest } = form;
     const body = isSave ? rest : form;
     try {
       let res;
@@ -121,6 +122,29 @@ export default function FreqtradeRow({
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      const res = await fetch("/api/freqtrade", {
+        method: "DELETE",
+        body: JSON.stringify({ id }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert("❌ 저장 실패: " + data?.error);
+      } else {
+        setIsVisible(false);
+        console.log("✅ 저장 완료", data);
+      }
+    } catch (err) {
+      console.error("❌ 네트워크 오류", err);
+      alert("서버 저장 중 오류 발생");
+    }
+  };
+  if (!isVisible) return null;
   return (
     <div className="flex items-center gap-4">
       {/* Exchange */}
@@ -178,8 +202,11 @@ export default function FreqtradeRow({
       />
 
       {/* Button */}
-      <Button className="w-[100px]" onClick={() => handleClick(!id)}>
+      <Button className="w-[50px]" onClick={() => handleClick(!id)}>
         {id ? "Update" : "Save"}
+      </Button>
+      <Button className="w-[50px]" onClick={handleDelete}>
+        Delete
       </Button>
 
       {/* Profit */}
