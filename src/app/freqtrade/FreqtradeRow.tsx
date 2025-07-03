@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 type RowProps = {
+  id?: string;
   exchange?: string;
   coin?: string;
   buyQty?: string | number;
@@ -20,6 +21,7 @@ type RowProps = {
 };
 
 export default function FreqtradeRow({
+  id = "",
   exchange = "",
   coin = "",
   buyQty: initialBuyQty = "",
@@ -35,12 +37,16 @@ export default function FreqtradeRow({
   const [sellPrice, setSellPrice] = useState(String(initialSellPrice ?? ""));
   const [profit, setProfit] = useState("");
 
-//   useEffect(() => {
-//     setSelectedExchange(exchange);
-//     setSelectedCoin(coin);
-//   }, [exchange, coin]);
+  useEffect(() => {
+    handleCalc();
+  }, [buyQty, buyPrice, sellQty, sellPrice]);
 
-  const handleCalc = () => {
+  useEffect(() => {
+    setSelectedExchange(exchange);
+    setSelectedCoin(coin);
+  }, [exchange, coin]);
+
+  const handleCalc = async () => {
     const _buyQty = parseFloat(buyQty);
     const _buyPrice = parseFloat(buyPrice);
     const _sellQty = parseFloat(sellQty);
@@ -62,6 +68,53 @@ export default function FreqtradeRow({
       setProfit(result.toFixed(2));
     } else {
       setProfit("");
+    }
+  };
+
+  const handleClick = async (isSave: boolean) => {
+    const _buyQty = parseFloat(buyQty);
+    const _buyPrice = parseFloat(buyPrice);
+    const _sellQty = parseFloat(sellQty);
+    const _sellPrice = parseFloat(sellPrice);
+
+    const form = {
+      id,
+      exchange: selectedExchange,
+      coin: selectedCoin,
+      buyQty: _buyQty,
+      sellQty: _sellQty,
+      buyPrice: _buyPrice,
+      sellPrice: _sellPrice,
+    };
+    try {
+      let res;
+      if (isSave) {
+        res = await fetch("/api/freqtrade", {
+          method: "POST",
+          body: JSON.stringify(form),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      } else {
+        res = await fetch("/api/freqtrade", {
+          method: "PUT",
+          body: JSON.stringify(form),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert("❌ 저장 실패: " + data?.error);
+      } else {
+        console.log("✅ 저장 완료", data);
+      }
+    } catch (err) {
+      console.error("❌ 네트워크 오류", err);
+      alert("서버 저장 중 오류 발생");
     }
   };
 
@@ -122,8 +175,8 @@ export default function FreqtradeRow({
       />
 
       {/* Button */}
-      <Button className="w-[100px]" onClick={handleCalc}>
-        Save
+      <Button className="w-[100px]" onClick={() => handleClick(!id)}>
+        {id ? "Update" : "Save"}
       </Button>
 
       {/* Profit */}
