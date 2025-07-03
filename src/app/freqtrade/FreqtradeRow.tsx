@@ -39,7 +39,7 @@ export default function FreqtradeRow({
 
   useEffect(() => {
     handleCalc();
-  }, [buyQty, buyPrice, sellQty, sellPrice]);
+  }, [selectedExchange, buyQty, buyPrice, sellQty, sellPrice]);
 
   useEffect(() => {
     setSelectedExchange(exchange);
