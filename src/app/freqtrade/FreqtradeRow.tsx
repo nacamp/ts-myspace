@@ -86,12 +86,15 @@ export default function FreqtradeRow({
       buyPrice: _buyPrice,
       sellPrice: _sellPrice,
     };
+    const { id:_, ...rest } = form;
+    const body = isSave ? rest : form;
     try {
       let res;
+      // TODO: save 후 id를 발급받지 못해서 버튼이 여전히 save 이다.
       if (isSave) {
         res = await fetch("/api/freqtrade", {
           method: "POST",
-          body: JSON.stringify(form),
+          body: JSON.stringify(body),
           headers: {
             "Content-Type": "application/json",
           },
@@ -99,7 +102,7 @@ export default function FreqtradeRow({
       } else {
         res = await fetch("/api/freqtrade", {
           method: "PUT",
-          body: JSON.stringify(form),
+          body: JSON.stringify(body),
           headers: {
             "Content-Type": "application/json",
           },
