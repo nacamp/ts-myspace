@@ -402,6 +402,76 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@prisma/client@npm:^6.11.0":
+  version: 6.11.0
+  resolution: "@prisma/client@npm:6.11.0"
+  peerDependencies:
+    prisma: "*"
+    typescript: ">=5.1.0"
+  peerDependenciesMeta:
+    prisma:
+      optional: true
+    typescript:
+      optional: true
+  checksum: 10c0/d7a6ca0ecb2742bee788925a2954b1b29399913ac1ceda39c7883642166fe27c0085664f41efcd7b27e4d38745ce27b964c24f9d9ad4975282cee7d5818e8a79
+  languageName: node
+  linkType: hard
+
+"@prisma/config@npm:6.11.0":
+  version: 6.11.0
+  resolution: "@prisma/config@npm:6.11.0"
+  dependencies:
+    jiti: "npm:2.4.2"
+  checksum: 10c0/a9c9c27954655ba4524897fe350fd4db20c1bc4231e38b4b6fb1e52401f26ae790cb8d13bf46538bf32d8204a87b7c5101153cdd672beaf90a8b69b6283e0498
+  languageName: node
+  linkType: hard
+
+"@prisma/debug@npm:6.11.0":
+  version: 6.11.0
+  resolution: "@prisma/debug@npm:6.11.0"
+  checksum: 10c0/692dbe9bbf8589e444fe9bc318bfc9743f1946a2012c643148d72d0849a5dbc4885501819273c530a372c1c4303ae00a59932570ef2b03a6f9a5e628ccb96264
+  languageName: node
+  linkType: hard
+
+"@prisma/engines-version@npm:6.11.0-18.9c30299f5a0ea26a96790e13f796dc6094db3173":
+  version: 6.11.0-18.9c30299f5a0ea26a96790e13f796dc6094db3173
+  resolution: "@prisma/engines-version@npm:6.11.0-18.9c30299f5a0ea26a96790e13f796dc6094db3173"
+  checksum: 10c0/d5630162d8aadeef03e40ef4fc611f1d4bf78c0308f0109408dabad0e79264f089c59c74566770770f28e2fc03aea6031f88fd661353d5fe5fab7005483d0ebf
+  languageName: node
+  linkType: hard
+
+"@prisma/engines@npm:6.11.0":
+  version: 6.11.0
+  resolution: "@prisma/engines@npm:6.11.0"
+  dependencies:
+    "@prisma/debug": "npm:6.11.0"
+    "@prisma/engines-version": "npm:6.11.0-18.9c30299f5a0ea26a96790e13f796dc6094db3173"
+    "@prisma/fetch-engine": "npm:6.11.0"
+    "@prisma/get-platform": "npm:6.11.0"
+  checksum: 10c0/04f0920b1fd15d7a9c028bccde0d509e67423af38ab13ab578a3f28df676a8d690659fe1a4411669842a535208901919e9f5c145fda0ce666ddf2b642e753900
+  languageName: node
+  linkType: hard
+
+"@prisma/fetch-engine@npm:6.11.0":
+  version: 6.11.0
+  resolution: "@prisma/fetch-engine@npm:6.11.0"
+  dependencies:
+    "@prisma/debug": "npm:6.11.0"
+    "@prisma/engines-version": "npm:6.11.0-18.9c30299f5a0ea26a96790e13f796dc6094db3173"
+    "@prisma/get-platform": "npm:6.11.0"
+  checksum: 10c0/732952661235e44de192cef3dfd741ebf62a9f17653b8f26d1d878be6b18dcaf0b3ee96ba5c68830b31f3df74a67391717e328a05dca0e0a2f16d5a3fb4f76ec
+  languageName: node
+  linkType: hard
+
+"@prisma/get-platform@npm:6.11.0":
+  version: 6.11.0
+  resolution: "@prisma/get-platform@npm:6.11.0"
+  dependencies:
+    "@prisma/debug": "npm:6.11.0"
+  checksum: 10c0/548f38043f52d62e4ba028d3f4afadc55ae59832bdb69b7d53b0ab0da9592339e53b96dd6407c990bec2d701b3777f44207fecc2500cb0190fb2de167c440f8d
+  languageName: node
+  linkType: hard
+
 "@radix-ui/number@npm:1.1.1":
   version: 1.1.1
   resolution: "@radix-ui/number@npm:1.1.1"
@@ -1286,7 +1356,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jiti@npm:^2.4.2":
+"jiti@npm:2.4.2, jiti@npm:^2.4.2":
   version: 2.4.2
   resolution: "jiti@npm:2.4.2"
   bin:
@@ -1547,6 +1617,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"prisma@npm:^6.11.0":
+  version: 6.11.0
+  resolution: "prisma@npm:6.11.0"
+  dependencies:
+    "@prisma/config": "npm:6.11.0"
+    "@prisma/engines": "npm:6.11.0"
+  peerDependencies:
+    typescript: ">=5.1.0"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  bin:
+    prisma: build/index.js
+  checksum: 10c0/7a6645300dd213b55a49c337b211d3e4be090f7d52c42410fa905d5b9a6b56721bbd2780c24d5db33eaaf9e96d45ee50e5e7ef7df2bde6a7075dbfda8802a924
+  languageName: node
+  linkType: hard
+
 "react-dom@npm:^19.0.0":
   version: 19.1.0
   resolution: "react-dom@npm:19.1.0"
@@ -1785,6 +1872,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ts-myspace@workspace:."
   dependencies:
+    "@prisma/client": "npm:^6.11.0"
     "@radix-ui/react-alert-dialog": "npm:^1.1.14"
     "@radix-ui/react-dialog": "npm:^1.1.14"
     "@radix-ui/react-select": "npm:^2.2.5"
@@ -1798,6 +1886,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     lucide-react: "npm:^0.515.0"
     next: "npm:15.3.3"
+    prisma: "npm:^6.11.0"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
     tailwind-merge: "npm:^3.3.1"

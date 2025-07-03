@@ -1,0 +1,23 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Freqtrade {
+  id        String   @id @default(uuid())
+  exchange  String
+  coin      String
+  buyQty    Float
+  sellQty   Float
+  buyPrice  Float
+  sellPrice Float
+  createdAt DateTime @default(now())
+}
