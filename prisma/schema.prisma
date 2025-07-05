@@ -13,11 +13,13 @@ datasource db {
 
 model Freqtrade {
   id        String   @id @default(uuid())
+  strategy  String?
   exchange  String
   coin      String
   buyQty    Float
   sellQty   Float
   buyPrice  Float
   sellPrice Float
+  tradedAt  DateTime?
   createdAt DateTime @default(now())
 }

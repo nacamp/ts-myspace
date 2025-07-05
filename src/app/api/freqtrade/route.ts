@@ -21,24 +21,35 @@ export async function POST(req: Request) {
   return NextResponse.json({ success: true });
 }
 
+const parseKSTDate = (yyyymmdd: string) => {
+  const yyyy = yyyymmdd.slice(0, 4);
+  const mm = yyyymmdd.slice(4, 6);
+  const dd = yyyymmdd.slice(6, 8);
+  console.log(`${yyyy}-${mm}-${dd}T00:00:00+09:00`)
+  const date = new Date(`${yyyy}-${mm}-${dd}T00:00:00+09:00`);
+  return date;
+};
 export async function PUT(req: Request) {
   const data = await req.json();
+  const { id, ...updateFields } = data;
 
   if (!data.id) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   }
-
+  console.log(data)
   try {
     const updated = await prisma.freqtrade.update({
       where: { id: data.id },
-      data: {
-        exchange: data.exchange,
-        coin: data.coin,
-        buyQty: data.buyQty,
-        sellQty: data.sellQty,
-        buyPrice: data.buyPrice,
-        sellPrice: data.sellPrice,
-      },
+      data : updateFields,
+      // data: {
+      //   exchange: data.exchange,
+      //   coin: data.coin,
+      //   buyQty: data.buyQty,
+      //   sellQty: data.sellQty,
+      //   buyPrice: data.buyPrice,
+      //   sellPrice: data.sellPrice,
+      //   tradedAt: data.tradedAt,
+      // },
     });
 
     return NextResponse.json({ success: true, data: updated });

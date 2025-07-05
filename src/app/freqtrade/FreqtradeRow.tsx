@@ -12,23 +12,28 @@ import { Button } from "@/components/ui/button";
 
 type RowProps = {
   id?: string;
+  strategy?: string;
   exchange?: string;
   coin?: string;
   buyQty?: string | number;
   sellQty?: string | number;
   buyPrice?: string | number;
   sellPrice?: string | number;
+  tradedAt?: string; // YYYYMMDD 형식의 문자열로 처리
 };
 
 export default function FreqtradeRow({
   id = "",
+  strategy = "",
   exchange = "",
   coin = "",
   buyQty: initialBuyQty = "",
   sellQty: initialSellQty = "",
   buyPrice: initialBuyPrice = "",
   sellPrice: initialSellPrice = "",
+  tradedAt: initialTradedAt = "",
 }: RowProps) {
+  const [selectedStrategy, setSelectedStrategy] = useState(strategy);
   const [selectedExchange, setSelectedExchange] = useState(exchange);
   const [selectedCoin, setSelectedCoin] = useState(coin);
   const [buyQty, setBuyQty] = useState(String(initialBuyQty ?? ""));
@@ -37,6 +42,7 @@ export default function FreqtradeRow({
   const [sellPrice, setSellPrice] = useState(String(initialSellPrice ?? ""));
   const [profit, setProfit] = useState("");
   const [isVisible, setIsVisible] = useState(true);
+  const [tradedAt, setTradedAt] = useState(initialTradedAt);
 
   useEffect(() => {
     handleCalc();
@@ -60,7 +66,7 @@ export default function FreqtradeRow({
       !isNaN(_sellPrice)
     ) {
       let fee = 0.0005;
-      if (selectedExchange === "bithumb") fee = 0.0004;
+      if (selectedExchange === "Bithumb") fee = 0.0004;
       console.log(fee, selectedExchange);
       const result =
         _sellQty * _sellPrice * (1 - fee) - _buyQty * _buyPrice * (1 + fee);
@@ -72,6 +78,12 @@ export default function FreqtradeRow({
     }
   };
 
+  const toDateFromYYYYMMDD = (yyyymmdd: string): Date => {
+    const yyyy = yyyymmdd.slice(0, 4);
+    const mm = yyyymmdd.slice(4, 6);
+    const dd = yyyymmdd.slice(6, 8);
+    return new Date(`${yyyy}-${mm}-${dd}T00:00:00+09:00`);
+  };
   const handleClick = async (isSave: boolean) => {
     const _buyQty = parseFloat(buyQty);
     const _buyPrice = parseFloat(buyPrice);
@@ -80,12 +92,14 @@ export default function FreqtradeRow({
 
     const form = {
       id,
+      strategy: selectedStrategy,
       exchange: selectedExchange,
       coin: selectedCoin,
       buyQty: _buyQty,
       sellQty: _sellQty,
       buyPrice: _buyPrice,
       sellPrice: _sellPrice,
+      tradedAt: toDateFromYYYYMMDD(tradedAt),
     };
     const { id: _, ...rest } = form;
     const body = isSave ? rest : form;
@@ -147,14 +161,32 @@ export default function FreqtradeRow({
   if (!isVisible) return null;
   return (
     <div className="flex items-center gap-4">
+      <Input
+        placeholder="yyyymmdd"
+        className="w-[100px]"
+        value={tradedAt}
+        onChange={(e) => setTradedAt(e.target.value)}
+      />
+
+      {/* strategy */}
+      <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+        <SelectTrigger className="w-[150px]">
+          <SelectValue placeholder="Strategy" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="StrategyV1">StrategyV1</SelectItem>
+          <SelectItem value="StrategyV11">StrategyV11</SelectItem>
+        </SelectContent>
+      </Select>
+
       {/* Exchange */}
       <Select value={selectedExchange} onValueChange={setSelectedExchange}>
-        <SelectTrigger className="w-[100px]">
+        <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Exchange" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="bithumb">Bithum</SelectItem>
-          <SelectItem value="upbit">Upbit</SelectItem>
+          <SelectItem value="Bithumb">Bithumb</SelectItem>
+          <SelectItem value="Upbit">Upbit</SelectItem>
         </SelectContent>
       </Select>
 
@@ -164,8 +196,10 @@ export default function FreqtradeRow({
           <SelectValue placeholder="Coin" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="btc">BTC</SelectItem>
-          <SelectItem value="eth">ETH</SelectItem>
+          <SelectItem value="BTC">BTC</SelectItem>
+          <SelectItem value="ETH">ETH</SelectItem>
+          <SelectItem value="SOL">SOL</SelectItem>
+          <SelectItem value="ADA">ADA</SelectItem>
         </SelectContent>
       </Select>
 
