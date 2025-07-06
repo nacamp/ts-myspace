@@ -26,6 +26,6 @@ import FreqtradeSheetClient from "./FreqtradeSheetClient";
 
 
 export default  async function FreqtradeSheet() {
-  const freqtrade = await prisma.freqtrade.findMany();
-   return <FreqtradeSheetClient initialData={freqtrade} />;
+  // const freqtrade = await prisma.freqtrade.findMany();
+   return <FreqtradeSheetClient initialData={[]} />;
 }

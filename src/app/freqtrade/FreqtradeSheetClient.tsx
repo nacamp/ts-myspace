@@ -33,6 +33,19 @@ export default function FreqtradeSheetClient({
   const [rows, setRows] = useState(initialData);
   const [profits, setProfits] = useState<number[]>(initialData.map(() => 0));
 
+  const [inputDate, setInputDate] = useState("202507"); // 입력용
+  const [selectedDate, setSelectedDate] = useState("202507"); // fetch용
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await fetch(`/api/freqtrade?yyyymm=${selectedDate}`);
+      const data: Freqtrade[] = await res.json();
+      setRows(data);
+      setProfits(data.map(() => 0));
+    };
+    fetchData();
+  }, [selectedDate]);
+
   const handleAddRow = () => {
     setRows([
       ...rows,
@@ -49,6 +62,21 @@ export default function FreqtradeSheetClient({
   };
   return (
     <div className="flex flex-col gap-3 p-6">
+      <div className="flex gap-2 items-center">
+        <input
+          // type="date"
+          value={inputDate}
+          onChange={(e) => setInputDate(e.target.value)}
+          className="border px-2 py-1 rounded"
+        />
+        <button
+          onClick={() => setSelectedDate(inputDate)}
+          className="bg-blue-500 text-white px-3 py-1 rounded"
+        >
+          조회
+        </button>
+      </div>
+
       {/* 1. 타이틀 헤더 */}
       <div className="flex items-center gap-4 text-sm  text-foreground font-medium">
         <div className="w-[100px]">Date</div>
