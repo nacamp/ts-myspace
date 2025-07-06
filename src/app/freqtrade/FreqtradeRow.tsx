@@ -20,6 +20,8 @@ type RowProps = {
   buyPrice?: string | number;
   sellPrice?: string | number;
   tradedAt?: string; // YYYYMMDD 형식의 문자열로 처리
+  //onProfitChange?: (index: number, profit: number) => void;
+  onProfitChange?: (profit: number) => void;
 };
 
 export default function FreqtradeRow({
@@ -32,6 +34,7 @@ export default function FreqtradeRow({
   buyPrice: initialBuyPrice = "",
   sellPrice: initialSellPrice = "",
   tradedAt: initialTradedAt = "",
+  onProfitChange,
 }: RowProps) {
   const [selectedStrategy, setSelectedStrategy] = useState(strategy);
   const [selectedExchange, setSelectedExchange] = useState(exchange);
@@ -73,6 +76,8 @@ export default function FreqtradeRow({
       console.debug(_sellQty * _sellPrice);
       console.debug();
       setProfit(result.toFixed(2));
+      //onProfitChange?.(index, result); // 부모에 전달
+      onProfitChange?.(result); // 부모에 전달
     } else {
       setProfit("");
     }

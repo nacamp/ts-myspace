@@ -4,7 +4,7 @@ import FreqtradeRow from "./FreqtradeRow";
 
 export interface Freqtrade {
   id?: string;
-  strategy?: string | null
+  strategy?: string | null;
   exchange: string;
   coin: string;
   buyQty: number;
@@ -31,6 +31,8 @@ export default function FreqtradeSheetClient({
   initialData,
 }: FreqtradeSheetClientProps) {
   const [rows, setRows] = useState(initialData);
+  const [profits, setProfits] = useState<number[]>(initialData.map(() => 0));
+
   const handleAddRow = () => {
     setRows([
       ...rows,
@@ -74,9 +76,16 @@ export default function FreqtradeSheetClient({
           tradedAt={
             item.tradedAt instanceof Date
               ? formatDateToKST(item.tradedAt)
-              // ? item.tradedAt.toISOString().slice(0, 10).replace(/-/g, "")
-              : item.tradedAt ?? ""
+              : // ? item.tradedAt.toISOString().slice(0, 10).replace(/-/g, "")
+                item.tradedAt ?? ""
           }
+          onProfitChange={(value) => {
+            setProfits((prev) => {
+              const updated = [...prev];
+              updated[i] = value;
+              return updated;
+            });
+          }}
         />
       ))}
       <button
@@ -85,6 +94,9 @@ export default function FreqtradeSheetClient({
       >
         + Add Row
       </button>
+      <div className="mt-6 text-right font-bold">
+        Total Profit: {profits.reduce((acc, val) => acc + val, 0).toFixed(2)}
+      </div>
     </div>
   );
 }
