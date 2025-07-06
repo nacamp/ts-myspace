@@ -15,10 +15,6 @@ export interface Freqtrade {
   tradedAt?: Date | null;
 }
 
-type FreqtradeSheetClientProps = {
-  initialData: Freqtrade[];
-};
-
 function formatDateToKST(date: Date): string {
   const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // +9시간 보정
   const yyyy = kstDate.getFullYear();
@@ -30,8 +26,15 @@ function formatDateToKST(date: Date): string {
 export default function FreqtradeSheet() {
   const [rows, setRows] = useState<Freqtrade[]>([]);
   const [profits, setProfits] = useState<number[]>([0]);
-  const [inputDate, setInputDate] = useState("202507"); // 입력용
-  const [selectedDate, setSelectedDate] = useState("202507"); // fetch용
+
+  const defaultYyyymm = (() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}${month}`;
+  })();
+  const [inputDate, setInputDate] = useState(defaultYyyymm);
+  const [selectedDate, setSelectedDate] = useState(defaultYyyymm);
 
   useEffect(() => {
     const fetchData = async () => {
