@@ -205,6 +205,9 @@ export default function FreqtradeRow({
           <SelectItem value="ETH">ETH</SelectItem>
           <SelectItem value="SOL">SOL</SelectItem>
           <SelectItem value="ADA">ADA</SelectItem>
+          <SelectItem value="XRP">XRP</SelectItem>
+          <SelectItem value="LINK">LINK</SelectItem>
+          <SelectItem value="DOGE">DOGE</SelectItem>
         </SelectContent>
       </Select>
 
@@ -250,7 +253,7 @@ export default function FreqtradeRow({
 
       {/* Profit */}
       <span className="w-[100px] text-right text-muted-foreground">
-        {profit}
+        {Number(profit).toLocaleString()}
       </span>
     </div>
   );

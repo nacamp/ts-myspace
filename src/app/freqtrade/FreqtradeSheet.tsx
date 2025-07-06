@@ -101,11 +101,7 @@ export default function FreqtradeSheet() {
           sellQty={item.sellQty}
           buyPrice={item.buyPrice}
           sellPrice={item.sellPrice}
-          tradedAt={
-            item.tradedAt instanceof Date
-              ? formatDateToKST(item.tradedAt)
-              : // ? item.tradedAt.toISOString().slice(0, 10).replace(/-/g, "")
-                item.tradedAt ?? ""
+          tradedAt={formatDateToKST(new Date( String(item.tradedAt)))
           }
           onProfitChange={(value) => {
             setProfits((prev) => {
@@ -123,7 +119,7 @@ export default function FreqtradeSheet() {
         + Add Row
       </button>
       <div className="mt-6 text-right font-bold">
-        Total Profit: {profits.reduce((acc, val) => acc + val, 0).toFixed(2)}
+        Total Profit: {Number(profits.reduce((acc, val) => acc + val, 0).toFixed(2)).toLocaleString()}
       </div>
     </div>
   );
