@@ -70,7 +70,6 @@ export default function FreqtradeRow({
     ) {
       let fee = 0.0005;
       if (selectedExchange === "Bithumb") fee = 0.0004;
-      console.log(fee, selectedExchange);
       const result =
         _sellQty * _sellPrice * (1 - fee) - _buyQty * _buyPrice * (1 + fee);
       console.debug(_sellQty * _sellPrice);

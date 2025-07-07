@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from 'next/server'
+import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
 // // GET: 사용자 목록 조회
@@ -60,13 +60,19 @@ import prisma from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const yyyymm = searchParams.get("yyyymm"); // ex: "202507"
+  const strategy = searchParams.get("strategy");
+  const exchange = searchParams.get("exchange");
+  console.log(strategy, exchange)
 
   if (!yyyymm) {
-    return NextResponse.json({ error: "Valid yyyymm query is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Valid yyyymm query is required" },
+      { status: 400 }
+    );
   }
-    console.log(yyyymm.length)
+  console.log(yyyymm.length);
 
-  if( yyyymm.length == 6){
+  if (yyyymm.length == 6) {
     const year = Number(yyyymm.slice(0, 4));
     const month = Number(yyyymm.slice(4, 6)) - 1; // JS Date는 0-indexed month
 
@@ -74,37 +80,49 @@ export async function GET(req: NextRequest) {
     const startKST = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // = KST 00:00
     const endKST = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0)); // = 다음달 KST 00:00
 
-    const data = await prisma.freqtrade.findMany({
-      where: {
-        tradedAt: {
-          gte: startKST,
-          lt: endKST,
-        },
+    const whereClause: any = {
+      tradedAt: {
+        gte: startKST,
+        lt: endKST,
       },
-    });
+    };
+
+    if (strategy) {
+      whereClause.strategy = strategy;
+    }
+    if (exchange) {
+      whereClause.exchange = exchange;
+    }
+
+    const data = await prisma.freqtrade.findMany({ where: whereClause });
 
     return NextResponse.json(data);
-  }else{
+  } else {
     const year = Number(yyyymm.slice(0, 4));
     const month = Number(yyyymm.slice(4, 6)) - 1;
     const day = Number(yyyymm.slice(6, 8));
-    console.log(year, month, day)
+    console.log(year, month, day);
     // KST 기준 1일 00:00 → UTC로는 전날 15:00
     const startKST = new Date(Date.UTC(year, month, day, -9, 0, 0)); // = KST 00:00
-    const endKST = new Date(Date.UTC(year, month, day+1, -9, 0, 0)); // = 다음달 KST 00:00
-    console.log(startKST, endKST)
-    const data = await prisma.freqtrade.findMany({
-      where: {
-        tradedAt: {
-          gte: startKST,
-          lt: endKST,
-        },
+    const endKST = new Date(Date.UTC(year, month, day + 1, -9, 0, 0)); // = 다음달 KST 00:00
+    const whereClause: any = {
+      tradedAt: {
+        gte: startKST,
+        lt: endKST,
       },
-    });
+    };
+    console.log(startKST, endKST);
+    if (strategy) {
+      whereClause.strategy = strategy;
+    }
+    if (exchange) {
+      whereClause.exchange = exchange;
+    }
+
+    const data = await prisma.freqtrade.findMany({ where: whereClause });
     // console.log(data)
     return NextResponse.json(data);
   }
-
 }
 
 export async function POST(req: Request) {
@@ -118,7 +136,7 @@ const parseKSTDate = (yyyymmdd: string) => {
   const yyyy = yyyymmdd.slice(0, 4);
   const mm = yyyymmdd.slice(4, 6);
   const dd = yyyymmdd.slice(6, 8);
-  console.log(`${yyyy}-${mm}-${dd}T00:00:00+09:00`)
+  console.log(`${yyyy}-${mm}-${dd}T00:00:00+09:00`);
   const date = new Date(`${yyyy}-${mm}-${dd}T00:00:00+09:00`);
   return date;
 };
@@ -127,13 +145,13 @@ export async function PUT(req: Request) {
   const { id, ...updateFields } = data;
 
   if (!data.id) {
-    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
-  console.log(data)
+  console.log(data);
   try {
     const updated = await prisma.freqtrade.update({
       where: { id: data.id },
-      data : updateFields,
+      data: updateFields,
       // data: {
       //   exchange: data.exchange,
       //   coin: data.coin,
@@ -148,7 +166,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
 
