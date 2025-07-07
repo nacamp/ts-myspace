@@ -1,5 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import FreqtradeRow from "./FreqtradeRow";
 
 export interface Freqtrade {
@@ -76,49 +85,57 @@ export default function FreqtradeSheet() {
   return (
     <div className="flex flex-col gap-3 p-6">
       <div className="flex gap-2 items-center">
-        <input
+        {/* <input
           // type="date"
           value={inputDate}
           onChange={(e) => setInputDate(e.target.value)}
           className="border px-2 py-1 rounded"
+        /> */}
+        <Input
+          placeholder="Sell Qty"
+          className="w-[100px]"
+          value={inputDate}
+          onChange={(e) => setInputDate(e.target.value)}
         />
-
-        <label className="text-sm">
-          Strategy:
-          <select
-            value={strategy}
-            onChange={(e) => setStrategy(e.target.value)}
-            className="ml-1 border rounded px-2 py-1"
-          >
-            <option value="">All</option>
-            <option value="StrategyV1">StrategyV1</option>
-            <option value="StrategyV11">StrategyV11</option>
-          </select>
-        </label>
-
-        <label className="text-sm">
-          Exchange:
-          <select
-            value={exchange}
-            onChange={(e) => setExchange(e.target.value)}
-            className="ml-1 border rounded px-2 py-1"
-          >
-            <option value="">All</option>
-            <option value="Bithumb">Bithumb</option>
-            <option value="Upbit">Upbit</option>
-          </select>
-        </label>
-
-        <button
-          onClick={() => fetchData()}
-          className="bg-blue-500 text-white px-3 py-1 rounded"
+        <Select
+          value={strategy}
+          onValueChange={(val) => {
+            setStrategy(val === "__all__" ? "" : val);
+          }}
         >
-          search
-        </button>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Strategy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All</SelectItem>
+            <SelectItem value="StrategyV1">StrategyV1</SelectItem>
+            <SelectItem value="StrategyV11">StrategyV11</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={exchange}
+          onValueChange={(val) => {
+            setExchange(val === "__all__" ? "" : val);
+          }}
+        >
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Exchange" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All</SelectItem>
+            <SelectItem value="Bithumb">Bithumb</SelectItem>
+            <SelectItem value="Upbit">Upbit</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button className="w-[50px]" onClick={fetchData}>
+          Search
+        </Button>
       </div>
 
       {/* 1. 타이틀 헤더 */}
       <div className="flex items-center gap-4 text-sm  text-foreground font-medium">
+        <div className="w-[50px]">No</div>
         <div className="w-[100px]">Date</div>
         <div className="w-[150px]">Strategy</div>
         <div className="w-[150px]">Exchange</div>
@@ -133,6 +150,7 @@ export default function FreqtradeSheet() {
       {rows.map((item, i) => (
         <FreqtradeRow
           key={i}
+          index={i + 1}
           id={item.id}
           strategy={item.strategy ?? ""}
           exchange={item.exchange}
@@ -151,16 +169,15 @@ export default function FreqtradeSheet() {
           }}
         />
       ))}
-      <button
+      <Button
         onClick={handleAddRow}
-        className="mt-4 self-start rounded bg-primary px-3 py-1 text-white"
       >
         + Add Row
-      </button>
+      </Button>
       <div className="mt-6 text-right font-bold">
         Total Profit:{" "}
         {Number(
-          profits.reduce((acc, val) => acc + val, 0).toFixed(2)
+          profits.reduce((acc, val) => acc + val, 0).toFixed(0)
         ).toLocaleString()}
       </div>
     </div>

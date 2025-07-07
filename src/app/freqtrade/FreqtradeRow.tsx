@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 type RowProps = {
   id?: string;
+  index: number;
   strategy?: string;
   exchange?: string;
   coin?: string;
@@ -25,6 +26,7 @@ type RowProps = {
 };
 
 export default function FreqtradeRow({
+  index = 0,
   id = "",
   strategy = "",
   exchange = "",
@@ -72,10 +74,7 @@ export default function FreqtradeRow({
       if (selectedExchange === "Bithumb") fee = 0.0004;
       const result =
         _sellQty * _sellPrice * (1 - fee) - _buyQty * _buyPrice * (1 + fee);
-      console.debug(_sellQty * _sellPrice);
-      console.debug();
-      setProfit(result.toFixed(2));
-      //onProfitChange?.(index, result); // 부모에 전달
+      setProfit(result.toFixed(0));
       onProfitChange?.(result); // 부모에 전달
     } else {
       setProfit("");
@@ -165,6 +164,9 @@ export default function FreqtradeRow({
   if (!isVisible) return null;
   return (
     <div className="flex items-center gap-4">
+      <span className="w-[50px] text-right text-muted-foreground">
+        {index}
+      </span>
       <Input
         placeholder="yyyymmdd"
         className="w-[100px]"
