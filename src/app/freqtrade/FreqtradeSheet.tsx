@@ -33,9 +33,6 @@ function formatDateToKST(date: Date): string {
 }
 
 export default function FreqtradeSheet() {
-  const [rows, setRows] = useState<Freqtrade[]>([]);
-  const [profits, setProfits] = useState<number[]>([0]);
-
   const defaultYyyymm = (() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -43,6 +40,8 @@ export default function FreqtradeSheet() {
     return `${year}${month}`;
   })();
 
+  const [rows, setRows] = useState<Freqtrade[]>([]);
+  const [profits, setProfits] = useState<number[]>([0]);
   const [inputDate, setInputDate] = useState(defaultYyyymm);
   const [strategy, setStrategy] = useState("");
   const [exchange, setExchange] = useState("");
@@ -94,6 +93,7 @@ export default function FreqtradeSheet() {
     setRows([
       ...rows,
       {
+        tradedAt : new Date(Date.now() - 9 * 60 * 60 * 1000),
         strategy: "",
         exchange: "",
         coin: "",
