@@ -33,44 +33,21 @@ export default function FreqtradeSheet() {
     const month = String(now.getMonth() + 1).padStart(2, "0");
     return `${year}${month}`;
   })();
+
   const [inputDate, setInputDate] = useState(defaultYyyymm);
-  const [selectedDate, setSelectedDate] = useState(defaultYyyymm);
   const [strategy, setStrategy] = useState("");
   const [exchange, setExchange] = useState("");
-  // useEffect(() => {
-  //   // const fetchData = async () => {
-  //   //   setRows([]); // 👈 이전 데이터 명확히 제거
-  //   //   setProfits([]);
 
-  //   //   const res = await fetch(`/api/freqtrade?yyyymm=${selectedDate}`);
-  //   //   const data: Freqtrade[] = await res.json();
-  //   //   setRows(data);
-  //   //   setProfits(data.map(() => 0));
-  //   // };
-  //   const fetchData = async () => {
-  //     setRows([]); // 초기화
-  //     setProfits([]);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  //     const params = new URLSearchParams();
-  //     params.set("yyyymm", selectedDate);
-  //     if (strategy) params.set("strategy", strategy);
-  //     if (exchange) params.set("exchange", exchange);
-
-  //     const res = await fetch(`/api/freqtrade?${params.toString()}`, {
-  //       cache: "no-store",
-  //     });
-  //     const data = await res.json();
-  //     setRows(data);
-  //     setProfits(data.map(() => 0));
-  //   };
-  //   fetchData();
-  // }, [selectedDate]);
   const fetchData = async () => {
-    setRows([]); // 초기화
+    setRows([]);
     setProfits([]);
 
     const params = new URLSearchParams();
-    params.set("yyyymm", selectedDate);
+    params.set("date", inputDate);
     if (strategy) params.set("strategy", strategy);
     if (exchange) params.set("exchange", exchange);
 
@@ -81,6 +58,7 @@ export default function FreqtradeSheet() {
     setRows(data);
     setProfits(data.map(() => 0));
   };
+
   const handleAddRow = () => {
     setRows([
       ...rows,
@@ -106,27 +84,26 @@ export default function FreqtradeSheet() {
         />
 
         <label className="text-sm">
-          전략:
+          Strategy:
           <select
             value={strategy}
             onChange={(e) => setStrategy(e.target.value)}
             className="ml-1 border rounded px-2 py-1"
           >
-            <option value="">전체</option>
+            <option value="">All</option>
             <option value="StrategyV1">StrategyV1</option>
             <option value="StrategyV11">StrategyV11</option>
-            {/* 필요시 동적 목록으로 변경 가능 */}
           </select>
         </label>
 
         <label className="text-sm">
-          거래소:
+          Exchange:
           <select
             value={exchange}
             onChange={(e) => setExchange(e.target.value)}
             className="ml-1 border rounded px-2 py-1"
           >
-            <option value="">전체</option>
+            <option value="">All</option>
             <option value="Bithumb">Bithumb</option>
             <option value="Upbit">Upbit</option>
           </select>
@@ -136,7 +113,7 @@ export default function FreqtradeSheet() {
           onClick={() => fetchData()}
           className="bg-blue-500 text-white px-3 py-1 rounded"
         >
-          조회
+          search
         </button>
       </div>
 

@@ -59,22 +59,22 @@ import prisma from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const yyyymm = searchParams.get("yyyymm"); // ex: "202507"
+  const date = searchParams.get("date"); // ex: "202507"
   const strategy = searchParams.get("strategy");
   const exchange = searchParams.get("exchange");
   console.log(strategy, exchange)
 
-  if (!yyyymm) {
+  if (!date) {
     return NextResponse.json(
       { error: "Valid yyyymm query is required" },
       { status: 400 }
     );
   }
-  console.log(yyyymm.length);
+  console.log(date.length);
 
-  if (yyyymm.length == 6) {
-    const year = Number(yyyymm.slice(0, 4));
-    const month = Number(yyyymm.slice(4, 6)) - 1; // JS Date는 0-indexed month
+  if (date.length == 6) {
+    const year = Number(date.slice(0, 4));
+    const month = Number(date.slice(4, 6)) - 1; // JS Date는 0-indexed month
 
     // KST 기준 1일 00:00 → UTC로는 전날 15:00
     const startKST = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // = KST 00:00
@@ -98,9 +98,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data);
   } else {
-    const year = Number(yyyymm.slice(0, 4));
-    const month = Number(yyyymm.slice(4, 6)) - 1;
-    const day = Number(yyyymm.slice(6, 8));
+    const year = Number(date.slice(0, 4));
+    const month = Number(date.slice(4, 6)) - 1;
+    const day = Number(date.slice(6, 8));
     console.log(year, month, day);
     // KST 기준 1일 00:00 → UTC로는 전날 15:00
     const startKST = new Date(Date.UTC(year, month, day, -9, 0, 0)); // = KST 00:00
