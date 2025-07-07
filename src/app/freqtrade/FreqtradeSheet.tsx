@@ -51,6 +51,28 @@ export default function FreqtradeSheet() {
     fetchData();
   }, []);
 
+  const positiveStats = profits.reduce(
+    (acc, val) => {
+      if (val > 0) {
+        acc.count += 1;
+        acc.total += val;
+      }
+      return acc;
+    },
+    { count: 0, total: 0 }
+  );
+
+  const negativeStats = profits.reduce(
+    (acc, val) => {
+      if (val < 0) {
+        acc.count += 1;
+        acc.total += val;
+      }
+      return acc;
+    },
+    { count: 0, total: 0 }
+  );
+
   const fetchData = async () => {
     setRows([]);
     setProfits([]);
@@ -169,16 +191,28 @@ export default function FreqtradeSheet() {
           }}
         />
       ))}
-      <Button
-        onClick={handleAddRow}
-      >
-        + Add Row
-      </Button>
-      <div className="mt-6 text-right font-bold">
-        Total Profit:{" "}
-        {Number(
-          profits.reduce((acc, val) => acc + val, 0).toFixed(0)
-        ).toLocaleString()}
+      <Button onClick={handleAddRow}>+ Add Row</Button>
+      <div className="flex mt-3 justify-end font-bold space-y-1 space-x-3 ">
+        <div>
+          ✅ Total Profit:{" "}
+          {profits
+            .reduce((acc, val) => acc + val, 0)
+            .toLocaleString("en-US", {
+              maximumFractionDigits: 0,
+            })}
+        </div>
+        <div>
+          🟢 Positive ({positiveStats.count}건):{" "}
+          {positiveStats.total.toLocaleString("en-US", {
+            maximumFractionDigits: 0,
+          })}
+        </div>
+        <div>
+          🔴 Negative ({negativeStats.count}건):{" "}
+          {negativeStats.total.toLocaleString("en-US", {
+            maximumFractionDigits: 0,
+          })}
+        </div>
       </div>
     </div>
   );
