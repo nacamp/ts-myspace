@@ -38,6 +38,9 @@ export default function FreqtradeSheet() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setRows([]); // 👈 이전 데이터 명확히 제거
+      setProfits([]);
+
       const res = await fetch(`/api/freqtrade?yyyymm=${selectedDate}`);
       const data: Freqtrade[] = await res.json();
       setRows(data);

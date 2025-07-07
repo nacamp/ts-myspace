@@ -14,31 +14,97 @@ import prisma from "@/lib/prisma";
 //   }
 // }
 
+// export async function GET(req: NextRequest) {
+//   const { searchParams } = new URL(req.url);
+//   const date = searchParams.get("yyyymm"); // yyyymm or yyyymmdd
+
+//   if (!date || !/^\d{6}(\d{2})?$/.test(date)) {
+//     return NextResponse.json(
+//       { error: "Query param 'date' must be in yyyymm or yyyymmdd format" },
+//       { status: 400 }
+//     );
+//   }
+
+//   let startKST: Date;
+//   let endKST: Date;
+
+//   if (date.length === 8) {
+//     // yyyymmdd (일 단위)
+//     const year = Number(date.slice(0, 4));
+//     const month = Number(date.slice(4, 6)) - 1;
+//     const day = Number(date.slice(6, 8));
+//     console.log(year, month, day)
+//     startKST = new Date(Date.UTC(year, month, day, -9, 0, 0)); // KST 00:00
+//     endKST = new Date(Date.UTC(year, month, day + 1, -9, 0, 0)); // 다음날 KST 00:00
+//   } else {
+//     // yyyymm (월 단위)
+//     const year = Number(date.slice(0, 4));
+//     const month = Number(date.slice(4, 6)) - 1;
+
+//     startKST = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // KST 1일 00:00
+//     endKST = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0)); // 다음달 1일
+//   }
+
+//   const data = await prisma.freqtrade.findMany({
+//     where: {
+//       tradedAt: {
+//         gte: startKST,
+//         lt: endKST,
+//       },
+//     },
+//   });
+
+//   return NextResponse.json(data);
+// }
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const yyyymm = searchParams.get("yyyymm"); // ex: "202507"
 
-  if (!yyyymm || yyyymm.length !== 6) {
+  if (!yyyymm) {
     return NextResponse.json({ error: "Valid yyyymm query is required" }, { status: 400 });
   }
+    console.log(yyyymm.length)
 
-  const year = Number(yyyymm.slice(0, 4));
-  const month = Number(yyyymm.slice(4, 6)) - 1; // JS Date는 0-indexed month
+  if( yyyymm.length == 6){
+    const year = Number(yyyymm.slice(0, 4));
+    const month = Number(yyyymm.slice(4, 6)) - 1; // JS Date는 0-indexed month
 
-  // KST 기준 1일 00:00 → UTC로는 전날 15:00
-  const startKST = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // = KST 00:00
-  const endKST = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0)); // = 다음달 KST 00:00
+    // KST 기준 1일 00:00 → UTC로는 전날 15:00
+    const startKST = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // = KST 00:00
+    const endKST = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0)); // = 다음달 KST 00:00
 
-  const data = await prisma.freqtrade.findMany({
-    where: {
-      tradedAt: {
-        gte: startKST,
-        lt: endKST,
+    const data = await prisma.freqtrade.findMany({
+      where: {
+        tradedAt: {
+          gte: startKST,
+          lt: endKST,
+        },
       },
-    },
-  });
+    });
 
-  return NextResponse.json(data);
+    return NextResponse.json(data);
+  }else{
+    const year = Number(yyyymm.slice(0, 4));
+    const month = Number(yyyymm.slice(4, 6)) - 1;
+    const day = Number(yyyymm.slice(6, 8));
+    console.log(year, month, day)
+    // KST 기준 1일 00:00 → UTC로는 전날 15:00
+    const startKST = new Date(Date.UTC(year, month, day, -9, 0, 0)); // = KST 00:00
+    const endKST = new Date(Date.UTC(year, month, day+1, -9, 0, 0)); // = 다음달 KST 00:00
+    console.log(startKST, endKST)
+    const data = await prisma.freqtrade.findMany({
+      where: {
+        tradedAt: {
+          gte: startKST,
+          lt: endKST,
+        },
+      },
+    });
+    // console.log(data)
+    return NextResponse.json(data);
+  }
+
 }
 
 export async function POST(req: Request) {
