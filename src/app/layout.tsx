@@ -8,8 +8,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 // const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Claude AI Clone",
-  description: "Next.js App Router with Sidebar Layout",
+  title: "Myspace",
+  description: "Only for me",
 };
 
 export default function RootLayout({

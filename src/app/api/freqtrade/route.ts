@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   if (exchange) {
     whereClause.exchange = exchange;
   }
-  const data = await prisma.freqtrade.findMany({ where: whereClause });
+  const data = await prisma.freqtrade.findMany({ where: whereClause, orderBy: {tradedAt: 'asc'} });
   return NextResponse.json(data);
 }
 

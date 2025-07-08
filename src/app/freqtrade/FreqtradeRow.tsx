@@ -209,6 +209,8 @@ export default function FreqtradeRow({
           <SelectItem value="XRP">XRP</SelectItem>
           <SelectItem value="LINK">LINK</SelectItem>
           <SelectItem value="DOGE">DOGE</SelectItem>
+          <SelectItem value="IOST">IOST</SelectItem>
+          <SelectItem value="TRX">TRX</SelectItem>
         </SelectContent>
       </Select>
 
