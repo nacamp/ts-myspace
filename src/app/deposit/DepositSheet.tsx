@@ -128,10 +128,10 @@ export default function DepositSheet() {
         <div className="w-[100px]">예금종류</div>
         <div className="w-[100px]">이율계산</div>
         <div className="w-[55px]">이율</div>
-        <div className="w-[120px]">계약금액</div>
-        <div className="w-[90px]">월납입금</div>
+        <div className="w-[100px]">월납입금</div>
         <div className="w-[50px]">계약월수</div>
         <div className="w-[50px]">입금월수</div>
+        <div className="w-[120px]">계약금액</div>
         <div className="w-[120px]">누적금액</div>
         <div className="w-[100px]">이자</div>
         <div className="w-[100px]">만기여부</div>

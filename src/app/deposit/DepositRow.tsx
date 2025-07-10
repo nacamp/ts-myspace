@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
 
 import { DepositProduct, Prisma } from "@/generated/prisma";
+import CommaNumberInput from "@/components/CommaNumberInput";
 type DepositRowProps = {
   row: Partial<DepositProduct>;
   isNew?: boolean;
@@ -85,7 +86,11 @@ export default function DepositRow({
     //   updated.totalInstallments
     // );
     if (updated.category === "recurring") {
-      if (updated.monthlyDeposit && updated.paidInstallments &&  updated.totalInstallments) {
+      if (
+        updated.monthlyDeposit &&
+        updated.paidInstallments &&
+        updated.totalInstallments
+      ) {
         // console.log(updated.monthlyDeposit, updated.paidInstallments);
         updated.totalDeposited =
           updated.monthlyDeposit * updated.paidInstallments;
@@ -237,27 +242,15 @@ export default function DepositRow({
         onChange={(e) => handleChange("interestInput", e.target.value)}
       />
 
-      <Input
-        placeholder="일시불"
-        inputMode="numeric"
-        className="w-[120px]"
-        value={form.initialDeposit?.toString() ?? ""}
-        onChange={(e) =>
-          handleChange("initialDeposit", parseInt(e.target.value))
-        }
+      <CommaNumberInput
+        value={form.monthlyDeposit ?? null}
+        onChange={(val) => handleChange("monthlyDeposit", val)}
+        placeholder="월납입"
+        className="w-[100px]"
       />
 
       <Input
-        placeholder="월 납입"
-        className="w-[90px]"
-        value={form.monthlyDeposit?.toString() ?? ""}
-        onChange={(e) =>
-          handleChange("monthlyDeposit", parseInt(e.target.value))
-        }
-      />
-
-      <Input
-        placeholder="회차"
+        placeholder="계약월"
         className="w-[50px]"
         value={form.totalInstallments?.toString() ?? ""}
         onChange={(e) =>
@@ -266,7 +259,7 @@ export default function DepositRow({
       />
 
       <Input
-        placeholder="회차"
+        placeholder="입금월"
         className="w-[50px]"
         value={form.paidInstallments?.toString() ?? ""}
         onChange={(e) =>
@@ -274,32 +267,27 @@ export default function DepositRow({
         }
       />
 
-      <Input
-        placeholder="누적 납입"
+      <CommaNumberInput
+        value={form.initialDeposit ?? null}
+        onChange={(val) => handleChange("initialDeposit", val)}
+        placeholder="계약금"
         className="w-[120px]"
-        value={form.totalDeposited?.toString() ?? ""}
-        onChange={(e) =>
-          handleChange("totalDeposited", parseInt(e.target.value))
-        }
       />
 
-      <Input
+      <CommaNumberInput
+        value={form.totalDeposited ?? null}
+        onChange={(val) => handleChange("totalDeposited", val)}
+        placeholder="누적금"
+        className="w-[120px]"
+      />
+      
+
+      <CommaNumberInput
+        value={form.profit ?? null}
+        onChange={(val) => handleChange("profit", val)}
         placeholder="이자"
         className="w-[100px]"
-        value={form.profit?.toString() ?? ""}
-        onChange={(e) => handleChange("profit", parseInt(e.target.value))}
       />
-      {/* <Input
-        placeholder="만기여부"
-        className="w-[100px]"
-        value={form.isMatured?.toString() ?? "false"}
-        onChange={(e) =>
-          handleChange(
-            "isMatured",
-            e.target.value.trim().toLowerCase() === "true"
-          )
-        }
-      /> */}
 
       <Select
         value={
