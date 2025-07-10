@@ -12,7 +12,7 @@ datasource db {
 }
 
 model Freqtrade {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   strategy  String?
   exchange  String
   coin      String
@@ -21,5 +21,31 @@ model Freqtrade {
   buyPrice  Float
   sellPrice Float
   tradedAt  DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
+
+model DepositProduct {
+  id                Int      @id @default(autoincrement())
+
+  name              String              // 상품 이름
+  userName          String              // 가입자
+  category          String              // 정기예금, 정기적금, 자유적금, 입출금
+
+  interest          Float               // 연 이율
+  useInterest       Boolean  @default(true)
+
+  initialDeposit    Int?                // 계약 금액 (정기예금: 일시불 / 적금: 총 납입 목표)
+  monthlyDeposit    Int?                // 정기적금용 - 월 납입금
+  totalDeposited    Int?                // 실제 누적 납입금
+
+  totalInstallments Int?                // 정기적금만 해당
+  paidInstallments  Int?                // 정기적금만 해당
+
+  maturityAt        DateTime?
+  isMatured         Boolean   @default(false)
+  profit            Int       @default(0)
+  createdAt         DateTime  @default(now())
+}
+
+// installment deposit
+// Time Deposit 
