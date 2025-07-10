@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner"
+import { toast } from "sonner";
 import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
 
 import { DepositProduct, Prisma } from "@/generated/prisma";
@@ -24,6 +24,38 @@ type DepositProductForm = Partial<DepositProduct> & {
   maturityAtInput?: string;
   interestInput?: string;
 };
+
+/**
+ * @param principal 원금 (예: 1000000)
+ * @param annualRate 연이율 % (예: 3.0)
+ * @param months 예치 개월 수 (예: 12)
+ */
+function calculateFixedDepositInterest(
+  principal: number,
+  annualRate: number,
+  months: number
+): number {
+  const rateDecimal = annualRate / 100;
+  const interest = principal * rateDecimal * (months / 12);
+  return Math.floor(interest); // 소수점 버림
+}
+
+/**
+ * 정기적금 예상이자 계산 함수 (단리 기준, 세전)
+ * @param monthlyAmount - 매월 납입액 (예: 100,000원)
+ * @param annualRate - 연이율 (%) (예: 3.5)
+ * @param months - 납입 개월 수 (예: 12)
+ * @returns 총이자 (세전)
+ */
+function calculateRecurringDepositInterest(
+  monthlyAmount: number,
+  annualRate: number,
+  months: number
+): number {
+  const rateDecimal = annualRate / 100;
+  const interest = ((monthlyAmount * months * (months + 1)) / 24) * rateDecimal;
+  return Math.floor(interest); // 소수점 버림
+}
 
 export default function DepositRow({
   row,
@@ -47,6 +79,41 @@ export default function DepositRow({
       const floatValue = parseFloat(value);
       updated.interest = isNaN(floatValue) ? undefined : floatValue;
     }
+    // console.log(
+    //   updated.totalDeposited,
+    //   updated.interest,
+    //   updated.totalInstallments
+    // );
+    if (updated.category === "recurring") {
+      if (updated.monthlyDeposit && updated.paidInstallments &&  updated.totalInstallments) {
+        // console.log(updated.monthlyDeposit, updated.paidInstallments);
+        updated.totalDeposited =
+          updated.monthlyDeposit * updated.paidInstallments;
+        updated.initialDeposit =
+          updated.monthlyDeposit * updated.totalInstallments;
+        if (updated.useInterest) {
+          updated.profit = calculateRecurringDepositInterest(
+            updated.monthlyDeposit,
+            updated.interest ?? 0,
+            updated.totalInstallments ?? 0
+          );
+        }
+      }
+    } else if (updated.category === "fixed") {
+      if (
+        updated.useInterest &&
+        updated.initialDeposit &&
+        updated.interest &&
+        updated.totalInstallments
+      ) {
+        updated.totalDeposited = updated.initialDeposit;
+        updated.profit = calculateFixedDepositInterest(
+          updated.totalDeposited,
+          updated.interest,
+          12
+        );
+      }
+    }
 
     setForm(updated);
     onChange?.(updated);
@@ -69,7 +136,7 @@ export default function DepositRow({
         console.error("❌ 저장 실패:", data);
         return;
       }
-      toast.success("저장 완료") //// toast("저장 완료")
+      toast.success("저장 완료"); //// toast("저장 완료")
 
       // 공통 후처리 로직
       if (isSave && data?.id) {
@@ -96,7 +163,7 @@ export default function DepositRow({
         console.error("❌ 삭제 실패:", data);
       } else {
         setIsVisible(false);
-        toast.success("삭제 완료")
+        toast.success("삭제 완료");
       }
     } catch (err) {
       console.error("❌ 네트워크 오류", err);
@@ -125,28 +192,55 @@ export default function DepositRow({
 
       <Input
         placeholder="가입자"
-        className="w-[100px]"
+        className="w-[60px]"
         value={form.userName ?? ""}
         onChange={(e) => handleChange("userName", e.target.value)}
       />
 
-      <Input
-        placeholder="유형 (예: 정기예금)"
-        className="w-[100px]"
+      <Select
         value={form.category ?? ""}
-        onChange={(e) => handleChange("category", e.target.value)}
-      />
+        onValueChange={(value) => handleChange("category", value)}
+      >
+        <SelectTrigger className="w-[100px]">
+          <SelectValue placeholder="예금종류" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="fixed">정기예금</SelectItem>
+          <SelectItem value="recurring">정기적금</SelectItem>
+          <SelectItem value="demand">입출금</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={
+          form.useInterest === true
+            ? "true"
+            : form.useInterest === false
+            ? "false"
+            : ""
+        }
+        onValueChange={(value) => handleChange("useInterest", value === "true")}
+      >
+        <SelectTrigger className="w-[100px]">
+          <SelectValue placeholder="이자자동계산" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="true">자동계산</SelectItem>
+          <SelectItem value="false">직접입력</SelectItem>
+        </SelectContent>
+      </Select>
 
       <Input
         placeholder="이율"
-        className="w-[100px]"
+        className="w-[55px]"
         value={form.interestInput ?? ""}
         onChange={(e) => handleChange("interestInput", e.target.value)}
       />
 
       <Input
         placeholder="일시불"
-        className="w-[100px]"
+        inputMode="numeric"
+        className="w-[120px]"
         value={form.initialDeposit?.toString() ?? ""}
         onChange={(e) =>
           handleChange("initialDeposit", parseInt(e.target.value))
@@ -155,7 +249,7 @@ export default function DepositRow({
 
       <Input
         placeholder="월 납입"
-        className="w-[100px]"
+        className="w-[90px]"
         value={form.monthlyDeposit?.toString() ?? ""}
         onChange={(e) =>
           handleChange("monthlyDeposit", parseInt(e.target.value))
@@ -163,17 +257,8 @@ export default function DepositRow({
       />
 
       <Input
-        placeholder="누적 납입"
-        className="w-[100px]"
-        value={form.totalDeposited?.toString() ?? ""}
-        onChange={(e) =>
-          handleChange("totalDeposited", parseInt(e.target.value))
-        }
-      />
-
-      <Input
-        placeholder="총 회차"
-        className="w-[100px]"
+        placeholder="회차"
+        className="w-[50px]"
         value={form.totalInstallments?.toString() ?? ""}
         onChange={(e) =>
           handleChange("totalInstallments", parseInt(e.target.value))
@@ -181,8 +266,8 @@ export default function DepositRow({
       />
 
       <Input
-        placeholder="납입 회차"
-        className="w-[100px]"
+        placeholder="회차"
+        className="w-[50px]"
         value={form.paidInstallments?.toString() ?? ""}
         onChange={(e) =>
           handleChange("paidInstallments", parseInt(e.target.value))
@@ -190,12 +275,21 @@ export default function DepositRow({
       />
 
       <Input
-        placeholder="수익"
+        placeholder="누적 납입"
+        className="w-[120px]"
+        value={form.totalDeposited?.toString() ?? ""}
+        onChange={(e) =>
+          handleChange("totalDeposited", parseInt(e.target.value))
+        }
+      />
+
+      <Input
+        placeholder="이자"
         className="w-[100px]"
         value={form.profit?.toString() ?? ""}
         onChange={(e) => handleChange("profit", parseInt(e.target.value))}
       />
-      <Input
+      {/* <Input
         placeholder="만기여부"
         className="w-[100px]"
         value={form.isMatured?.toString() ?? "false"}
@@ -205,7 +299,27 @@ export default function DepositRow({
             e.target.value.trim().toLowerCase() === "true"
           )
         }
-      />
+      /> */}
+
+      <Select
+        value={
+          form.isMatured === true
+            ? "true"
+            : form.isMatured === false
+            ? "false"
+            : ""
+        }
+        onValueChange={(value) => handleChange("isMatured", value === "true")}
+      >
+        <SelectTrigger className="w-[100px]">
+          <SelectValue placeholder="만기여부" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="true">만기</SelectItem>
+          <SelectItem value="false">만기이전</SelectItem>
+        </SelectContent>
+      </Select>
+
       <Button className="w-[50px]" onClick={() => handleSaveOrUpdate(!form.id)}>
         {form.id ? "Update" : "Save"}
       </Button>

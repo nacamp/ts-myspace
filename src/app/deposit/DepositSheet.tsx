@@ -43,7 +43,7 @@ export default function DepositSheet() {
       cache: "no-store",
     });
     const data = await res.json();
-    const parsedData = data.map((item:DepositProduct) => ({
+    const parsedData = data.map((item: DepositProduct) => ({
       ...item,
       maturityAt: item.maturityAt ? new Date(item.maturityAt) : null,
     }));
@@ -124,14 +124,15 @@ export default function DepositSheet() {
         <div className="w-[50px]">No</div>
         <div className="w-[100px]">만기일</div>
         <div className="w-[100px]">예금명</div>
-        <div className="w-[100px]">사용자</div>
+        <div className="w-[60px]">사용자</div>
         <div className="w-[100px]">예금종류</div>
-        <div className="w-[100px]">이율</div>
-        <div className="w-[100px]">계약금액</div>
-        <div className="w-[100px]">월납입금</div>
-        <div className="w-[100px]">누적금액</div>
-        <div className="w-[100px]">적금계약월수</div>
-        <div className="w-[100px]">적금입금월수</div>
+        <div className="w-[100px]">이율계산</div>
+        <div className="w-[55px]">이율</div>
+        <div className="w-[120px]">계약금액</div>
+        <div className="w-[90px]">월납입금</div>
+        <div className="w-[50px]">계약월수</div>
+        <div className="w-[50px]">입금월수</div>
+        <div className="w-[120px]">누적금액</div>
         <div className="w-[100px]">이자</div>
         <div className="w-[100px]">만기여부</div>
       </div>
