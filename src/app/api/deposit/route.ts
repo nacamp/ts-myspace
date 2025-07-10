@@ -37,3 +37,11 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  const { id } = await req.json();
+  await prisma.depositProduct.delete({
+    where: { id },
+  });
+  return NextResponse.json({ success: true });
+}

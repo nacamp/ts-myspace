@@ -30,6 +30,7 @@ export default function DepositRow({
   index,
   onChange,
 }: DepositRowProps) {
+  const [isVisible, setIsVisible] = useState(true);
   const [form, setForm] = useState<DepositProductForm>({
     ...row,
     maturityAtInput: row.maturityAt ? toYYYYMMDDfromDate(row.maturityAt) : "",
@@ -87,6 +88,30 @@ export default function DepositRow({
     }
   };
 
+  const handleDelete = async () => {
+    const url = "/api/deposit";
+    try {
+      const res = await fetch(url, {
+        method: "DELETE",
+        body: JSON.stringify({ id: form.id }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert("❌ 저장 실패: " + data?.error);
+      } else {
+        setIsVisible(false);
+        console.log("✅ 저장 완료", data);
+      }
+    } catch (err) {
+      console.error("❌ 네트워크 오류", err);
+      alert("서버 저장 중 오류 발생");
+    }
+  };
+  if (!isVisible) return null;
   return (
     <div className="flex items-center gap-4 py-2">
       <span className="w-[50px] text-right text-muted-foreground">
@@ -192,6 +217,9 @@ export default function DepositRow({
       />
       <Button className="w-[50px]" onClick={() => handleSaveOrUpdate(!form.id)}>
         {form.id ? "Update" : "Save"}
+      </Button>
+      <Button className="w-[50px]" onClick={handleDelete}>
+        Delete
       </Button>
     </div>
   );
