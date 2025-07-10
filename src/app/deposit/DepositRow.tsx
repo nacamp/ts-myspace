@@ -76,15 +76,10 @@ export default function DepositRow({
 
     if (field === "maturityAtInput") {
       updated.maturityAt = toDateFromYYYYMMDD(value);
-    } else if (field === "interestInput") {
-      const floatValue = parseFloat(value);
-      updated.interest = isNaN(floatValue) ? undefined : floatValue;
+    // } else if (field === "interestInput") {
+    //   const floatValue = parseFloat(value);
+    //   updated.interest = isNaN(floatValue) ? undefined : floatValue;
     }
-    // console.log(
-    //   updated.totalDeposited,
-    //   updated.interest,
-    //   updated.totalInstallments
-    // );
     if (updated.category === "recurring") {
       if (
         updated.monthlyDeposit &&
@@ -105,6 +100,7 @@ export default function DepositRow({
         }
       }
     } else if (updated.category === "fixed") {
+      console.log(updated)
       if (
         updated.useInterest &&
         updated.initialDeposit &&
@@ -115,7 +111,7 @@ export default function DepositRow({
         updated.profit = calculateFixedDepositInterest(
           updated.totalDeposited,
           updated.interest,
-          12
+          updated.totalInstallments
         );
       }
     }
@@ -235,11 +231,11 @@ export default function DepositRow({
         </SelectContent>
       </Select>
 
-      <Input
+      <CommaNumberInput
+        value={form.interest ?? null}
+        onChange={(val) => handleChange("interest", val)}
         placeholder="이율"
         className="w-[55px]"
-        value={form.interestInput ?? ""}
-        onChange={(e) => handleChange("interestInput", e.target.value)}
       />
 
       <CommaNumberInput

@@ -131,7 +131,7 @@ export default function DepositSheet() {
         <div className="w-[50px]">입금월수</div>
         <div className="w-[120px]">계약금액</div>
         <div className="w-[120px]">누적금액</div>
-        <div className="w-[100px]">이자</div>
+        <div className="w-[100px]">만기이자</div>
         <div className="w-[100px]">만기여부</div>
       </div>
       {rows.map((item, i) => (
