@@ -22,6 +22,7 @@ const menuItems = [
   { name: "홈", href: "/", icon: MessageSquare },
   { name: "설정", href: "/settings", icon: Settings },
   { name: "freqtrade", href: "/freqtrade", icon: FileText },
+  { name: "deposit", href: "/deposit", icon: FileText },
 ];
 
 export function AppSidebar() {

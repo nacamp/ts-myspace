@@ -8,6 +8,32 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: Request) {
   const data = await req.json();
-  await prisma.depositProduct.create({ data });
-  return NextResponse.json({ success: true });
+  const createdData = await prisma.depositProduct.create({ data });
+
+  return NextResponse.json({
+    success: true,
+    id: createdData.id,
+    // data: createdData
+  });
+}
+
+export async function PUT(req: Request) {
+  const data = await req.json();
+  const { id, ...updateFields } = data;
+
+  if (!data.id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+  console.log(data);
+  try {
+    const updated = await prisma.depositProduct.update({
+      where: { id: data.id },
+      data: updateFields,
+    });
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
 }

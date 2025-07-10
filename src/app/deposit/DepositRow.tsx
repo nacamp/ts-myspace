@@ -30,7 +30,6 @@ export default function DepositRow({
   index,
   onChange,
 }: DepositRowProps) {
-
   const [form, setForm] = useState<DepositProductForm>({
     ...row,
     maturityAtInput: row.maturityAt ? toYYYYMMDDfromDate(row.maturityAt) : "",
@@ -42,7 +41,7 @@ export default function DepositRow({
 
     if (field === "maturityAtInput") {
       updated.maturityAt = toDateFromYYYYMMDD(value);
-    } else if( field === "interestInput"){
+    } else if (field === "interestInput") {
       const floatValue = parseFloat(value);
       updated.interest = isNaN(floatValue) ? undefined : floatValue;
     }
@@ -51,27 +50,36 @@ export default function DepositRow({
     onChange?.(updated);
   };
 
-  const handleSave = async () => {
-    console.log(form)
+  const handleSaveOrUpdate = async (isSave: boolean) => {
     const { maturityAtInput, interestInput, ...formToSend } = form;
+    const method = isSave ? "POST" : "PUT";
+    const url = "/api/deposit";
+
     try {
-      const res = await fetch("/api/deposit", {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         body: JSON.stringify(formToSend),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        alert("❌ 저장 실패: " + data?.error);
-      } else {
-        console.log("✅ 저장 완료", data);
 
-        // // 서버에서 id 포함된 전체 row를 응답했다면:
-        // const updatedRow = { ...row, ...data }; // 또는 data.id만 합쳐도 됨
-        // onSaved?.(updatedRow); // 부모 컴포넌트에 반영 요청
+      if (!res.ok) {
+        console.error("❌ 저장 실패:", data);
+        alert(
+          `❌ ${isSave ? "저장" : "수정"} 실패: ${
+            data?.error ?? "알 수 없는 오류"
+          }`
+        );
+        return;
+      }
+
+      console.log(`✅ ${isSave ? "저장" : "수정"} 완료`, data);
+
+      // 공통 후처리 로직
+      if (isSave && data?.id) {
+        handleChange("id", data.id);
+        // onSaved?.({ ...formToSend, id: data.id }); // 필요 시
       }
     } catch (err) {
       console.error("❌ 네트워크 오류", err);
@@ -175,11 +183,15 @@ export default function DepositRow({
         placeholder="만기여부"
         className="w-[100px]"
         value={form.isMatured?.toString() ?? "false"}
-        onChange={(e) => handleChange("isMatured", e.target.value.trim().toLowerCase() === "true")}
+        onChange={(e) =>
+          handleChange(
+            "isMatured",
+            e.target.value.trim().toLowerCase() === "true"
+          )
+        }
       />
-      {/* Button */}
-      <Button className="w-[50px]" onClick={() => handleSave()}>
-        Save
+      <Button className="w-[50px]" onClick={() => handleSaveOrUpdate(!form.id)}>
+        {form.id ? "Update" : "Save"}
       </Button>
     </div>
   );
