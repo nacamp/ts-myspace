@@ -22,7 +22,6 @@ export default function DepositSheet() {
   })();
   const [rows, setRows] = useState<Partial<DepositProduct>[]>([]);
   // const [rows, setRows] = useState<Prisma.DepositProductCreateInput[]>([]);
-  const [profits, setProfits] = useState<number[]>([0]);
   const [inputDate, setInputDate] = useState(defaultYyyymm);
   const [strategy, setStrategy] = useState("");
   const [exchange, setExchange] = useState("");
@@ -48,7 +47,6 @@ export default function DepositSheet() {
       maturityAt: item.maturityAt ? new Date(item.maturityAt) : null,
     }));
     setRows(parsedData);
-    // setProfits(data.map(() => 0));
   };
 
   const handleAddRow = () => {
@@ -154,7 +152,8 @@ export default function DepositSheet() {
       <div className="flex mt-3 justify-end font-bold space-y-1 space-x-3 ">
         <div>
           ✅ Total Profit:{" "}
-          {profits
+          {rows
+            .map((row) => row.profit ?? 0)
             .reduce((acc, val) => acc + val, 0)
             .toLocaleString("en-US", {
               maximumFractionDigits: 0,
