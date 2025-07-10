@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css";
 import { SidebarProvider } from "@/components/providers/sidebar-provider";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -25,6 +26,7 @@ export default function RootLayout({
             <AppSidebar />
             <main className="flex-1 flex flex-col transition-all duration-300 ease-in-out">
               {children}
+              <Toaster richColors position="top-right" />
             </main>
           </div>
         </SidebarProvider>

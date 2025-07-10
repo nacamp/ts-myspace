@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner"
 import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
 
 import { DepositProduct, Prisma } from "@/generated/prisma";
@@ -64,27 +65,18 @@ export default function DepositRow({
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         console.error("❌ 저장 실패:", data);
-        alert(
-          `❌ ${isSave ? "저장" : "수정"} 실패: ${
-            data?.error ?? "알 수 없는 오류"
-          }`
-        );
         return;
       }
-
-      console.log(`✅ ${isSave ? "저장" : "수정"} 완료`, data);
+      toast.success("저장 완료") //// toast("저장 완료")
 
       // 공통 후처리 로직
       if (isSave && data?.id) {
         handleChange("id", data.id);
-        // onSaved?.({ ...formToSend, id: data.id }); // 필요 시
       }
     } catch (err) {
       console.error("❌ 네트워크 오류", err);
-      alert("서버 저장 중 오류 발생");
     }
   };
 
@@ -101,14 +93,13 @@ export default function DepositRow({
 
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ 저장 실패: " + data?.error);
+        console.error("❌ 삭제 실패:", data);
       } else {
         setIsVisible(false);
-        console.log("✅ 저장 완료", data);
+        toast.success("삭제 완료")
       }
     } catch (err) {
       console.error("❌ 네트워크 오류", err);
-      alert("서버 저장 중 오류 발생");
     }
   };
   if (!isVisible) return null;
