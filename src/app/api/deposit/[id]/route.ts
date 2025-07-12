@@ -1,16 +1,42 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-
+import { getSearchDate } from "@/lib/utils";
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { searchParams } = new URL(req.url);
+
   const { id } = await params;
   const depositProductId = parseInt(id, 10);
+
+  const startAt = searchParams.get("startAt");
+  const endAt = searchParams.get("endAt");
+
+  if (startAt && ![6, 8].includes(startAt.length)) {
+    return NextResponse.json(
+      { error: "startAt : Valid yyyymm or yyyymmdd query is required" },
+      { status: 400 }
+    );
+  }
+  if (endAt && ![6, 8].includes(endAt.length)) {
+    return NextResponse.json(
+      { error: "endAt : Valid yyyymm or yyyymmdd query is required" },
+      { status: 400 }
+    );
+  }
+
+  const whereClause = {
+    ...(startAt &&
+      endAt && {
+        startAt: { gte: getSearchDate(startAt, "start") },
+        endAt: { lte: getSearchDate(endAt, "end") },
+      }),
+    depositProductId,
+  };
+
   const data = await prisma.demandDepositTransaction.findMany({
-    where: {
-      depositProductId,
-    },
+    where: whereClause,
   });
   return NextResponse.json(data);
 }

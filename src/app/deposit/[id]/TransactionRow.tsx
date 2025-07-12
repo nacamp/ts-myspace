@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+import { DemandDepositTransaction, Prisma } from "@/generated/prisma";
 import {
   Select,
   SelectContent,
@@ -9,11 +12,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
-
-import { DemandDepositTransaction, Prisma } from "@/generated/prisma";
 import CommaNumberInput from "@/components/CommaNumberInput";
+
 type DepositRowProps = {
   row: Partial<DemandDepositTransaction>;
   isNew?: boolean;
@@ -68,7 +69,7 @@ function calculateRecurringDepositInterest(
   return Math.floor(interest); // 소수점 버림
 }
 
-export default function DepositRow({
+export default function TransactionRow({
   row,
   isNew = false,
   index,

@@ -1,53 +1,38 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
-import {
-  Prisma,
-  DemandDepositTransaction,
-} from "@/generated/prisma";
-import DepositRow from "./TransactionRow";
-
 import { useParams } from "next/navigation";
 
-export default function DepositSheet() {
+import { Button } from "@/components/ui/button";
+import { Prisma, DemandDepositTransaction } from "@/generated/prisma";
+import Search, { SearchField } from "@/components/Search";
+// import { defaultYyyymmdd } from "@/lib/utils";
+
+import DepositRow from "./TransactionRow";
+
+export default function TransactionSheet() {
   const params = useParams<{ id: string }>();
   const depositProductId = parseInt(params.id, 10);
-  const defaultYyyymm = (() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    return `${year}${month}`;
-  })();
   const [rows, setRows] = useState<Partial<DemandDepositTransaction>[]>([]);
-  // const [rows, setRows] = useState<Prisma.DepositProductCreateInput[]>([]);
-  const [inputDate, setInputDate] = useState(defaultYyyymm);
-  const [strategy, setStrategy] = useState("");
-  const [exchange, setExchange] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // 초기 데이터가 너무 많다.
+  // useEffect(() => {
+  //   fetchData();
+  // }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (filters: Record<string, string> = {}) => {
     setRows([]);
-
     const params = new URLSearchParams();
-    // params.set("date", inputDate);
-    // if (strategy) params.set("strategy", strategy);
-    // if (exchange) params.set("exchange", exchange);
 
-    const res = await fetch(`/api/deposit/${depositProductId}?${params.toString()}`, {
-      cache: "no-store",
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
     });
+
+    const res = await fetch(
+      `/api/deposit/${depositProductId}?${params.toString()}`,
+      {
+        cache: "no-store",
+      }
+    );
     const data = await res.json();
     const parsedData = data.map((item: DemandDepositTransaction) => ({
       ...item,
@@ -61,62 +46,42 @@ export default function DepositSheet() {
     setRows([
       ...rows,
       {
-        startAt: new Date(), // 예치 시작일
-        endAt: new Date(), // 예치 시작일
+        startAt: new Date(),
+        endAt: new Date(),
         totalDeposited: 0,
         interest: 0,
         useInterest: true,
         profit: 0,
-        depositProductId
+        depositProductId,
       },
     ]);
   };
+
+  // search
+  const [searchValues, setSearchValues] = useState<Record<string, string>>({});
+  const fields: SearchField[] = [
+    { key: "startAt", label: "시작(YYYYMMDD)", type: "input" },
+    { key: "endAt", label: "종료(YYYYMMDD)", type: "input" },
+  ];
+
+  const handleSearchChange = (key: string, val: string) => {
+    setSearchValues((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const handleSearch = () => {
+    fetchData(searchValues);
+  };
+
   return (
     <div className="flex flex-col gap-3 p-6">
-      <div className="flex gap-2 items-center">
-        <Input
-          placeholder="Sell Qty"
-          className="w-[100px]"
-          value={inputDate}
-          onChange={(e) => setInputDate(e.target.value)}
-        />
-        <Select
-          value={strategy}
-          onValueChange={(val) => {
-            setStrategy(val === "__all__" ? "" : val);
-          }}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Strategy" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All</SelectItem>
-            <SelectItem value="StrategyV1">StrategyV1</SelectItem>
-            <SelectItem value="StrategyV11">StrategyV11</SelectItem>
-          </SelectContent>
-        </Select>
+      <Search
+        title="예치 상품 검색"
+        fields={fields}
+        values={searchValues}
+        onChange={handleSearchChange}
+        onSearch={handleSearch}
+      />
 
-        <Select
-          value={exchange}
-          onValueChange={(val) => {
-            setExchange(val === "__all__" ? "" : val);
-          }}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Exchange" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All</SelectItem>
-            <SelectItem value="Bithumb">Bithumb</SelectItem>
-            <SelectItem value="Upbit">Upbit</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button className="w-[50px]" onClick={fetchData}>
-          Search
-        </Button>
-      </div>
-
-      {/* 1. 타이틀 헤더 */}
       <div className="flex items-center gap-4 text-sm  text-foreground font-medium">
         <div className="w-[50px]">No</div>
         <div className="w-[100px]">시작일</div>
