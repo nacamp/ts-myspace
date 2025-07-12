@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
+import {
+  toDateFromYYYYMMDD,
+  toYYYYMMDDfromDate,
+  getDaysBetween,
+  calculateInterestByDay,
+} from "@/lib/utils";
 import CommaNumberInput from "@/components/CommaNumberInput";
 
 type DepositRowProps = {
@@ -26,48 +31,6 @@ type DemandDepositTransactionForm = Partial<DemandDepositTransaction> & {
   startAtInput?: string;
   endAtInput?: string;
 };
-
-/**
- * @param principal 원금 (예: 1000000)
- * @param annualRate 연이율 % (예: 3.0)
- * @param months 예치 개월 수 (예: 12)
- */
-// function calculateFixedDepositInterest(
-//   principal: number,
-//   annualRate: number,
-//   months: number
-// ): number {
-//   const rateDecimal = annualRate / 100;
-//   const interest = principal * rateDecimal * (months / 12);
-//   return Math.floor(interest); // 소수점 버림
-// }
-
-function calculateFixedDepositInterest(
-  principal: number,
-  annualRate: number,
-  months: number
-): number {
-  const monthlyRate = annualRate / 100 / 12;
-  const finalAmount = principal * Math.pow(1 + monthlyRate, months);
-  const interest = finalAmount - principal;
-  return Math.floor(interest); // 소수점 버림
-}
-/**
- * 정기적금 예상이자 계산 함수 (단리 기준, 세전)
- * @param monthlyAmount - 매월 납입액 (예: 100,000원)
- * @param annualRate - 연이율 (%) (예: 3.5)
- * @param months - 납입 개월 수 (예: 12)
- * @returns 총이자 (세전)
- */
-function calculateRecurringDepositInterest(
-  monthlyAmount: number,
-  annualRate: number,
-  months: number
-): number {
-  const rateDecimal = annualRate / 100;
-  const interest = ((monthlyAmount * months * (months + 1)) / 24) * rateDecimal;
-  return Math.floor(interest); // 소수점 버림
-}
 
 export default function TransactionRow({
   row,
@@ -86,8 +49,27 @@ export default function TransactionRow({
     field: keyof DemandDepositTransactionForm,
     value: any
   ) => {
-    console.log(value);
     const updated = { ...form, [field]: value };
+
+    if (field === "startAtInput" && value) {
+      updated.startAt = toDateFromYYYYMMDD(value) ?? undefined;
+    } else if (field === "endAtInput" && value) {
+      updated.endAt = toDateFromYYYYMMDD(value) ?? undefined;
+    }
+
+    if (
+      updated.startAtInput &&
+      updated.endAtInput &&
+      updated.totalDeposited &&
+      updated.interest &&
+      updated.useInterest
+    ) {
+      updated.profit = calculateInterestByDay(
+        updated.totalDeposited,
+        updated.interest ?? 0,
+        getDaysBetween(updated.startAtInput, updated.endAtInput) ?? 0
+      );
+    }
 
     setForm(updated);
     onChange?.(updated);
@@ -122,7 +104,7 @@ export default function TransactionRow({
   };
 
   const handleDelete = async () => {
-    const url = "/api/deposit";
+    const url = `/api/deposit/${form.depositProductId}`;
     try {
       const res = await fetch(url, {
         method: "DELETE",

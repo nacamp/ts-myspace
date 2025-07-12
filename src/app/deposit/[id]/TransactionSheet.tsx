@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Prisma, DemandDepositTransaction } from "@/generated/prisma";
 import Search, { SearchField } from "@/components/Search";
-// import { defaultYyyymmdd } from "@/lib/utils";
 
 import DepositRow from "./TransactionRow";
 

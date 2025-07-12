@@ -32,6 +32,28 @@ export function toYYYYMMDDfromDate(date: Date | null | undefined): string {
   return `${yyyy}${mm}${dd}`;
 }
 
+export function getDaysBetween(from: string, to: string): number {
+  if (from.length !== 8 || to.length !== 8) {
+    throw new Error("날짜 형식은 YYYYMMDD 이어야 합니다.");
+  }
+
+  const fromDate = new Date(
+    Number(from.slice(0, 4)),
+    Number(from.slice(4, 6)) - 1,
+    Number(from.slice(6, 8))
+  );
+
+  const toDate = new Date(
+    Number(to.slice(0, 4)),
+    Number(to.slice(4, 6)) - 1,
+    Number(to.slice(6, 8))
+  );
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const diffInMs = toDate.getTime() - fromDate.getTime();
+  return Math.floor(Math.abs(diffInMs / msPerDay));
+}
+
 // export const defaultYyyymm = (() => {
 //   const now = new Date();
 //   const year = now.getFullYear();
@@ -54,8 +76,6 @@ const formatDate = (date: Date, withDay = false) => {
 
 export const defaultYyyymm = formatDate(new Date(), false);
 export const defaultYyyymmdd = formatDate(new Date(), true);
-
-
 
 export function getSearchDate(dateStr: string, type: "start" | "end"): Date {
   const year = Number(dateStr.slice(0, 4));
@@ -82,4 +102,40 @@ export function getSearchDate(dateStr: string, type: "start" | "end"): Date {
   }
 
   return date;
+}
+
+// 이자계산
+// 예금 복리
+function calculateFixedDepositInterest(
+  principal: number,
+  annualRate: number,
+  months: number
+): number {
+  const monthlyRate = annualRate / 100 / 12;
+  const finalAmount = principal * Math.pow(1 + monthlyRate, months);
+  const interest = finalAmount - principal;
+  return Math.floor(interest); // 소수점 버림
+}
+
+export function calculateInterestByDay(
+  principal: number, // 예치 금액
+  annualRate: number, // 연이율 (%)
+  days: number, // 예치 일수
+  compound?: boolean // 복리 여부 (기본: false = 단리)
+): number {
+  if (principal <= 0 || annualRate <= 0 || days <= 0) return 0;
+
+  const ratePerDay = annualRate / 100 / 365;
+
+  let interest = 0;
+
+  if (compound) {
+    // 복리 계산
+    interest = principal * (Math.pow(1 + ratePerDay, days) - 1);
+  } else {
+    // 단리 계산
+    interest = principal * ratePerDay * days;
+  }
+
+  return Math.floor(interest); // 원화 기준 소수점 절사
 }
