@@ -45,6 +45,23 @@ model DepositProduct {
   isMatured         Boolean   @default(false)
   profit            Int       @default(0)
   createdAt         DateTime  @default(now())
+  demandTransactions  DemandDepositTransaction[] 
+}
+
+model DemandDepositTransaction {
+  id              Int             @id @default(autoincrement())
+  
+  startAt         DateTime        // 예치 시작일
+  endAt           DateTime        // 인출일 또는 종료일
+  totalDeposited  Int             // 총입금액
+  interest        Float           // 적용 이율 (%)
+  useInterest     Boolean         @default(true) // 이자 적용 여부
+  profit          Int             @default(0)     // 계산된 이자 (세전 or 세후 기준은 주석으로)
+
+  depositProduct  DepositProduct  @relation(fields: [depositProductId], references: [id])
+  depositProductId Int            // 연결된 예금상품 ID
+
+  createdAt       DateTime        @default(now())
 }
 
 // installment deposit
