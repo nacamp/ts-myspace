@@ -6,6 +6,7 @@ type Props = {
   onChange: (value: number | null) => void;
   placeholder?: string;
   className?: string;
+  readOnly?: boolean;
 };
 
 export default function CommaNumberInput({
@@ -13,6 +14,7 @@ export default function CommaNumberInput({
   onChange,
   placeholder,
   className,
+  readOnly
 }: Props) {
   const [displayValue, setDisplayValue] = useState("");
 
@@ -52,6 +54,7 @@ export default function CommaNumberInput({
       value={displayValue}
       onChange={handleInputChange}
       onBlur={handleBlur}
+      readOnly={!!readOnly}
     />
   );
 }

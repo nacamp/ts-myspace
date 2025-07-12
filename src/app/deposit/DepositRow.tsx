@@ -1,5 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
+
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -9,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
 
 import { DepositProduct, Prisma } from "@/generated/prisma";
@@ -31,16 +34,26 @@ type DepositProductForm = Partial<DepositProduct> & {
  * @param annualRate 연이율 % (예: 3.0)
  * @param months 예치 개월 수 (예: 12)
  */
+// function calculateFixedDepositInterest(
+//   principal: number,
+//   annualRate: number,
+//   months: number
+// ): number {
+//   const rateDecimal = annualRate / 100;
+//   const interest = principal * rateDecimal * (months / 12);
+//   return Math.floor(interest); // 소수점 버림
+// }
+
 function calculateFixedDepositInterest(
   principal: number,
   annualRate: number,
   months: number
 ): number {
-  const rateDecimal = annualRate / 100;
-  const interest = principal * rateDecimal * (months / 12);
+  const monthlyRate = annualRate / 100 / 12;
+  const finalAmount = principal * Math.pow(1 + monthlyRate, months);
+  const interest = finalAmount - principal;
   return Math.floor(interest); // 소수점 버림
 }
-
 /**
  * 정기적금 예상이자 계산 함수 (단리 기준, 세전)
  * @param monthlyAmount - 매월 납입액 (예: 100,000원)
@@ -64,6 +77,7 @@ export default function DepositRow({
   index,
   onChange,
 }: DepositRowProps) {
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(true);
   const [form, setForm] = useState<DepositProductForm>({
     ...row,
@@ -76,9 +90,9 @@ export default function DepositRow({
 
     if (field === "maturityAtInput") {
       updated.maturityAt = toDateFromYYYYMMDD(value);
-    // } else if (field === "interestInput") {
-    //   const floatValue = parseFloat(value);
-    //   updated.interest = isNaN(floatValue) ? undefined : floatValue;
+      // } else if (field === "interestInput") {
+      //   const floatValue = parseFloat(value);
+      //   updated.interest = isNaN(floatValue) ? undefined : floatValue;
     }
     if (updated.category === "recurring") {
       if (
@@ -100,7 +114,6 @@ export default function DepositRow({
         }
       }
     } else if (updated.category === "fixed") {
-      console.log(updated)
       if (
         updated.useInterest &&
         updated.initialDeposit &&
@@ -276,13 +289,13 @@ export default function DepositRow({
         placeholder="누적금"
         className="w-[120px]"
       />
-      
 
       <CommaNumberInput
         value={form.profit ?? null}
         onChange={(val) => handleChange("profit", val)}
         placeholder="이자"
         className="w-[100px]"
+        readOnly={form.category ==='demand'}
       />
 
       <Select
@@ -310,6 +323,14 @@ export default function DepositRow({
       <Button className="w-[50px]" onClick={handleDelete}>
         Delete
       </Button>
+      {form.category === "demand" && (
+        <Button
+          className="w-[50px]"
+          onClick={() => form.id && router.push(`/deposit/${form.id}`)}
+        >
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      )}
     </div>
   );
 }

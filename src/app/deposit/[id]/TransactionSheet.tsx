@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Prisma, DemandDepositTransaction } from "@/generated/prisma";
 import Search, { SearchField } from "@/components/Search";
@@ -9,14 +11,15 @@ import Search, { SearchField } from "@/components/Search";
 import DepositRow from "./TransactionRow";
 
 export default function TransactionSheet() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const depositProductId = parseInt(params.id, 10);
   const [rows, setRows] = useState<Partial<DemandDepositTransaction>[]>([]);
 
   // 초기 데이터가 너무 많다.
-  // useEffect(() => {
-  //   fetchData();
-  // }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const fetchData = async (filters: Record<string, string> = {}) => {
     setRows([]);
@@ -56,6 +59,29 @@ export default function TransactionSheet() {
     ]);
   };
 
+  const  handleUSumProfit = async () => {
+    const method = "PUT";
+    const url = `/api/deposit/${depositProductId}/sum-profit`;
+
+    try {
+      const res = await fetch(url, {
+        method,
+        body: JSON.stringify({}),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("❌ 저장 실패:", data);
+        return;
+      }
+      toast.success("이자 계산 완료"); //// toast("저장 완료")
+
+    } catch (err) {
+      console.error("❌ 네트워크 오류", err);
+    }
+  };
+
   // search
   const [searchValues, setSearchValues] = useState<Record<string, string>>({});
   const fields: SearchField[] = [
@@ -73,13 +99,18 @@ export default function TransactionSheet() {
 
   return (
     <div className="flex flex-col gap-3 p-6">
+      <Button className="w-[50px]" onClick={() => router.back()}>
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
+      {/* 
+      다보여주는게 이자 반영시 직관적일 것 같다.
       <Search
         title="예치 상품 검색"
         fields={fields}
         values={searchValues}
         onChange={handleSearchChange}
         onSearch={handleSearch}
-      />
+      /> */}
 
       <div className="flex items-center gap-4 text-sm  text-foreground font-medium">
         <div className="w-[50px]">No</div>
@@ -105,7 +136,7 @@ export default function TransactionSheet() {
         />
       ))}
       <Button onClick={handleAddRow}>+ Add Row</Button>
-      <div className="flex mt-3 justify-end font-bold space-y-1 space-x-3 ">
+      <div className="flex flex-col mt-3 items-end font-bold space-y-1 space-x-3 ">
         <div>
           ✅ Total Profit:{" "}
           {rows
@@ -114,6 +145,11 @@ export default function TransactionSheet() {
             .toLocaleString("en-US", {
               maximumFractionDigits: 0,
             })}
+        </div>
+        <div>
+          <Button onClick={handleUSumProfit}>
+            Update profit at DepositProduct
+          </Button>
         </div>
       </div>
     </div>
