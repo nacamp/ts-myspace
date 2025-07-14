@@ -1,8 +1,38 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { getSearchDate } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
-  const data = await prisma.depositProduct.findMany();
+  const { searchParams } = new URL(req.url);
+
+  const year = searchParams.get("year");
+  const userName = searchParams.get("userName");
+  const category = searchParams.get("category");
+
+  if (year && ![4].includes(year.length)) {
+    return NextResponse.json(
+      { error: "startAt : Valid yyyymm or yyyymmdd query is required" },
+      { status: 400 }
+    );
+  }
+
+  const whereClause = {
+    ...(year && {
+      maturityAt: {
+        gte: getSearchDate(year, "start"),
+        lte: getSearchDate(year, "end"),
+      },
+    }),
+    ...(userName && {
+      userName,
+    }),
+    ...(category && {
+      category,
+    }),
+  };
+  const data = await prisma.depositProduct.findMany({
+    where: whereClause, orderBy: {maturityAt: 'asc'}
+  });
   return NextResponse.json(data);
 }
 

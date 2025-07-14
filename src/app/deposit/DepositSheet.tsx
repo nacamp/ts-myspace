@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
 import { Prisma, DepositProduct } from "@/generated/prisma";
+
+import Search, { SearchField } from "@/components/Search";
+
 import DepositRow from "./DepositRow";
 
 export default function DepositSheet() {
@@ -30,13 +32,13 @@ export default function DepositSheet() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (filters: Record<string, string> = {}) => {
     setRows([]);
-
     const params = new URLSearchParams();
-    // params.set("date", inputDate);
-    // if (strategy) params.set("strategy", strategy);
-    // if (exchange) params.set("exchange", exchange);
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
 
     const res = await fetch(`/api/deposit?${params.toString()}`, {
       cache: "no-store",
@@ -72,50 +74,41 @@ export default function DepositSheet() {
       },
     ]);
   };
+
+  // search
+  const [searchValues, setSearchValues] = useState<Record<string, string>>({});
+  const fields: SearchField[] = [
+    { key: "year", label: "년도(YYYY)", type: "input" },
+    { key: "userName", label: "예금주", type: "input" },
+    {
+      key: "category",
+      label: "예금종류",
+      type: "select",
+      options: [
+        { label: "정기예금", value: "fixed" },
+        { label: "정기적금", value: "recurring" },
+        { label: "입출금", value: "demand" },
+      ],
+    },
+  ];
+
+  const handleSearchChange = (key: string, val: string) => {
+    setSearchValues((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const handleSearch = () => {
+    fetchData(searchValues);
+  };
+
   return (
     <div className="flex flex-col gap-3 p-6">
-      <div className="flex gap-2 items-center">
-        <Input
-          placeholder="Sell Qty"
-          className="w-[100px]"
-          value={inputDate}
-          onChange={(e) => setInputDate(e.target.value)}
-        />
-        <Select
-          value={strategy}
-          onValueChange={(val) => {
-            setStrategy(val === "__all__" ? "" : val);
-          }}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Strategy" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All</SelectItem>
-            <SelectItem value="StrategyV1">StrategyV1</SelectItem>
-            <SelectItem value="StrategyV11">StrategyV11</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={exchange}
-          onValueChange={(val) => {
-            setExchange(val === "__all__" ? "" : val);
-          }}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Exchange" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All</SelectItem>
-            <SelectItem value="Bithumb">Bithumb</SelectItem>
-            <SelectItem value="Upbit">Upbit</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button className="w-[50px]" onClick={fetchData}>
-          Search
-        </Button>
-      </div>
+      <Search
+        title="예치 상품 검색"
+        fields={fields}
+        values={searchValues}
+        onChange={handleSearchChange}
+        onSearch={handleSearch}
+      />
 
       {/* 1. 타이틀 헤더 */}
       <div className="flex items-center gap-4 text-sm  text-foreground font-medium">
@@ -154,6 +147,15 @@ export default function DepositSheet() {
           ✅ Total Profit:{" "}
           {rows
             .map((row) => row.profit ?? 0)
+            .reduce((acc, val) => acc + val, 0)
+            .toLocaleString("en-US", {
+              maximumFractionDigits: 0,
+            })}
+        </div>
+        <div>
+          ✅ Total deposit:{" "}
+          {rows
+            .map((row) => row.totalDeposited ?? 0)
             .reduce((acc, val) => acc + val, 0)
             .toLocaleString("en-US", {
               maximumFractionDigits: 0,

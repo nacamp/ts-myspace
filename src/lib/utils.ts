@@ -79,30 +79,68 @@ export const defaultYyyymmdd = formatDate(new Date(), true);
 
 export function getSearchDate(dateStr: string, type: "start" | "end"): Date {
   const year = Number(dateStr.slice(0, 4));
-  const month = Number(dateStr.slice(4, 6)) - 1; // JS는 0-indexed month
+  let month = 0;
+  let day = 1;
 
   let date: Date;
 
-  if (dateStr.length === 6) {
-    // yyyyMM 형식: 월 단위
+  if (dateStr.length === 4) {
+    // yyyy 형식: 연 단위
     if (type === "start") {
-      date = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // KST 00:00
+      date = new Date(Date.UTC(year, 0, 1, -9, 0, 0)); // 그해 1월 1일 KST 00:00
     } else {
-      date = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0)); // 다음 달 KST 00:00
+      date = new Date(Date.UTC(year + 1, 0, 1, -9, 0, 0)); // 다음해 1월 1일 KST 00:00
+    }
+  } else if (dateStr.length === 6) {
+    // yyyyMM 형식: 월 단위
+    month = Number(dateStr.slice(4, 6)) - 1;
+    if (type === "start") {
+      date = new Date(Date.UTC(year, month, 1, -9, 0, 0));
+    } else {
+      date = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0));
     }
   } else if (dateStr.length === 8) {
-    const day = Number(dateStr.slice(6, 8));
+    // yyyyMMdd 형식: 일 단위
+    month = Number(dateStr.slice(4, 6)) - 1;
+    day = Number(dateStr.slice(6, 8));
     if (type === "start") {
-      date = new Date(Date.UTC(year, month, day, -9, 0, 0)); // 당일 KST 00:00
+      date = new Date(Date.UTC(year, month, day, -9, 0, 0));
     } else {
-      date = new Date(Date.UTC(year, month, day + 1, -9, 0, 0)); // 다음날 KST 00:00
+      date = new Date(Date.UTC(year, month, day + 1, -9, 0, 0));
     }
   } else {
-    throw new Error("Invalid date format: must be yyyyMM or yyyyMMdd");
+    throw new Error("Invalid date format: must be yyyy, yyyyMM, or yyyyMMdd");
   }
 
   return date;
 }
+
+// export function getSearchDate(dateStr: string, type: "start" | "end"): Date {
+//   const year = Number(dateStr.slice(0, 4));
+//   const month = Number(dateStr.slice(4, 6)) - 1; // JS는 0-indexed month
+
+//   let date: Date;
+
+//   if (dateStr.length === 6) {
+//     // yyyyMM 형식: 월 단위
+//     if (type === "start") {
+//       date = new Date(Date.UTC(year, month, 1, -9, 0, 0)); // KST 00:00
+//     } else {
+//       date = new Date(Date.UTC(year, month + 1, 1, -9, 0, 0)); // 다음 달 KST 00:00
+//     }
+//   } else if (dateStr.length === 8) {
+//     const day = Number(dateStr.slice(6, 8));
+//     if (type === "start") {
+//       date = new Date(Date.UTC(year, month, day, -9, 0, 0)); // 당일 KST 00:00
+//     } else {
+//       date = new Date(Date.UTC(year, month, day + 1, -9, 0, 0)); // 다음날 KST 00:00
+//     }
+//   } else {
+//     throw new Error("Invalid date format: must be yyyyMM or yyyyMMdd");
+//   }
+
+//   return date;
+// }
 
 // 이자계산
 // 예금 복리

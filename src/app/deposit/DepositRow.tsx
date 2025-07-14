@@ -114,6 +114,9 @@ export default function DepositRow({
         }
       }
     } else if (updated.category === "fixed") {
+      if (updated.initialDeposit) {
+        updated.totalDeposited = updated.initialDeposit;
+      }
       if (
         updated.useInterest &&
         updated.initialDeposit &&
@@ -295,7 +298,7 @@ export default function DepositRow({
         onChange={(val) => handleChange("profit", val)}
         placeholder="이자"
         className="w-[100px]"
-        readOnly={form.category ==='demand'}
+        readOnly={form.category === "demand"}
       />
 
       <Select
