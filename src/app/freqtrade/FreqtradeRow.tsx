@@ -182,6 +182,7 @@ export default function FreqtradeRow({
         <SelectContent>
           <SelectItem value="StrategyV1">StrategyV1</SelectItem>
           <SelectItem value="StrategyV11">StrategyV11</SelectItem>
+          <SelectItem value="Draft">Draft</SelectItem>
         </SelectContent>
       </Select>
 
