@@ -181,6 +181,23 @@ export default function DecisionInputForm() {
     else alert("저장 실패");
   };
 
+  const deleteDecision = async () => {
+    if (!decisionId) return;
+    const confirm = window.confirm("정말로 이 결정을 삭제하시겠습니까?");
+    if (!confirm) return;
+
+    const res = await fetch(`/api/decision/${decisionId}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      alert("삭제 완료");
+      window.location.href = "/";
+    } else {
+      alert("삭제 실패");
+    }
+  };
+
   const yesJudgments = judgments.filter((j) => j.verdict === "yes");
   const noJudgments = judgments.filter((j) => j.verdict === "no");
 
@@ -339,7 +356,6 @@ export default function DecisionInputForm() {
                 </div>
               </div>
             ))}
-            
           </div>
         </div>
 
@@ -353,10 +369,16 @@ export default function DecisionInputForm() {
           value={decision.result || ""}
           onChange={(e) => handleDecisionChange("result", e.target.value)}
         />
-
-        <Button onClick={saveDecision}>
-          {decisionId ? "결정 수정" : "결정 저장하기"}
-        </Button>
+        <div className="flex space-x-4">
+          <Button onClick={saveDecision}>
+            {decisionId ? "결정 수정" : "결정 저장하기"}
+          </Button>
+          {decisionId && (
+            <Button variant="destructive" onClick={deleteDecision}>
+              결정 삭제
+            </Button>
+          )}
+        </div>
 
         <div className="mt-8 space-y-4">
           <div className="text-lg font-semibold">카테고리별 참고 요소</div>
