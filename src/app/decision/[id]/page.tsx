@@ -138,29 +138,6 @@ export default function DecisionInputForm() {
     setJudgments(updated);
   };
 
-  // const handleJudgmentChange = (index: number, field: keyof EditableJudgment, value: string | number) => {
-  //   const updated = [...judgments];
-  //   updated[index][field] = field === "weight" ? Number(value) : value;
-  //   setJudgments(updated);
-  // };
-
-  // const handleJudgmentChange = (
-  //   index: number,
-  //   field: keyof EditableJudgment,
-  //   value: string | number
-  // ) => {
-  //   const updated = [...judgments];
-  //   if (field === "weight") {
-  //     updated[index][field] = Number(value) as EditableJudgment["weight"];
-  //   } else if (field === "why") {
-  //     updated[index][field] = value as EditableJudgment["why"];
-  //   } else if (field === "verdict") {
-  //     updated[index][field] = value as string;
-  //   }
-  //   // updated[index][field] = field === "weight" ? Number(value) : value;
-  //   setJudgments(updated);
-  // };
-
   const addJudgment = (verdict: "yes" | "no") => {
     setJudgments([
       ...judgments,
@@ -223,7 +200,8 @@ export default function DecisionInputForm() {
 
         <div className="flex space-x-4">
           <div className="w-1/2 space-y-4">
-            <div className="text-lg font-semibold">YES 요소</div>
+            <Button onClick={() => addJudgment("yes")}>YES 추가</Button>
+            {/* <div className="text-lg font-semibold">YES 요소</div> */}
             {yesJudgments.map((j, index) => (
               <div
                 key={index}
@@ -290,17 +268,16 @@ export default function DecisionInputForm() {
                 </div>
               </div>
             ))}
-            <Button onClick={() => addJudgment("yes")}>YES 요소 추가</Button>
           </div>
 
           <div className="w-1/2 space-y-4">
-            <div className="text-lg font-semibold">NO 요소</div>
+            <Button onClick={() => addJudgment("no")}>NO 추가</Button>
             {noJudgments.map((j, index) => (
               <div
                 key={index}
                 className="flex flex-col border p-4 rounded-xl space-y-2"
               >
-                <div className="flex ">
+                <div className="flex items-start gap-2">
                   <Select
                     value={j.category ?? ""}
                     onValueChange={(value) =>
@@ -362,99 +339,9 @@ export default function DecisionInputForm() {
                 </div>
               </div>
             ))}
-            <Button onClick={() => addJudgment("no")}>NO 요소 추가</Button>
+            
           </div>
         </div>
-
-        {/* <div className="flex space-x-4">
-          <div className="w-1/2 space-y-4">
-            <div className="text-lg font-semibold">YES 요소</div>
-            {yesJudgments.map((j, index) => (
-              <div
-                key={index}
-                className="flex flex-col border p-4 rounded-xl space-y-2"
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <Textarea
-                    className="flex-1"
-                    placeholder="고려사항 메모"
-                    value={j.why || ""}
-                    onChange={(e) =>
-                      handleJudgmentChange(index, "why", e.target.value)
-                    }
-                  />
-                  <Input
-                    className="w-[64px]"
-                    placeholder="가중치"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={j.weight || 0}
-                    onChange={(e) =>
-                      handleJudgmentChange(
-                        index,
-                        "weight",
-                        parseInt(e.target.value)
-                      )
-                    }
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteJudgment(index)}
-                  >
-                    삭제
-                  </Button>
-                </div>
-              </div>
-            ))}
-            <Button onClick={() => addJudgment("yes")}>YES 요소 추가</Button>
-          </div>
-
-          <div className="w-1/2 space-y-4">
-            <div className="text-lg font-semibold">NO 요소</div>
-            {noJudgments.map((j, index) => (
-              <div
-                key={index}
-                className="flex flex-col border p-4 rounded-xl space-y-2"
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <Textarea
-                    className="flex-1"
-                    placeholder="고려사항 메모"
-                    value={j.why || ""}
-                    onChange={(e) =>
-                      handleJudgmentChange(index, "why", e.target.value)
-                    }
-                  />
-                  <Input
-                    className="w-[64px]"
-                    placeholder="가중치"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={j.weight || 0}
-                    onChange={(e) =>
-                      handleJudgmentChange(
-                        index,
-                        "weight",
-                        parseInt(e.target.value)
-                      )
-                    }
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteJudgment(index)}
-                  >
-                    삭제
-                  </Button>
-                </div>
-              </div>
-            ))}
-            <Button onClick={() => addJudgment("no")}>NO 요소 추가</Button>
-          </div>
-        </div> */}
 
         <Button onClick={calculateResult}>결과 계산</Button>
         {autoResult && (
@@ -464,14 +351,7 @@ export default function DecisionInputForm() {
         <Textarea
           placeholder="내가 실제 내린 결론"
           value={decision.result || ""}
-          // value={userDecision}
           onChange={(e) => handleDecisionChange("result", e.target.value)}
-          // onChange={(e) => setUserDecision(e.target.value)}
-        />
-        <Textarea
-          placeholder="결정에 대한 설명이나 코멘트"
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
         />
 
         <Button onClick={saveDecision}>
@@ -493,115 +373,5 @@ export default function DecisionInputForm() {
         </div>
       </CardContent>
     </Card>
-    // <Card className="w-full max-w-5xl mx-auto p-6 space-y-4">
-    //   <CardContent className="space-y-4">
-    //     <Input
-    //       placeholder="결정할 질문을 입력하세요"
-    //       value={decision.title || ""}
-    //       onChange={(e) => handleDecisionChange("title", e.target.value)}
-    //     />
-    //     <Textarea
-    //       placeholder="질문의 배경이나 이유"
-    //       value={decision.why || ""}
-    //       onChange={(e) => handleDecisionChange("why", e.target.value)}
-    //     />
-
-    //     <div className="flex space-x-4">
-    //       <div className="w-1/2 space-y-4">
-    //         <div className="text-lg font-semibold">YES 요소</div>
-    //         {yesJudgments.map((j, index) => (
-    //           <div
-    //             key={index}
-    //             className="flex flex-col border p-4 rounded-xl space-y-2"
-    //           >
-    //             <div className="flex justify-between items-start gap-2">
-    //               <Textarea
-    //                 className="flex-1"
-    //                 placeholder="고려사항 메모"
-    //                 value={j.why || ""}
-    //                 onChange={(e) =>
-    //                   handleJudgmentChange(index, "why", e.target.value)
-    //                 }
-    //               />
-    //               <Input
-    //                 className="w-[64px]"
-    //                 placeholder="가중치"
-    //                 type="text"
-    //                 inputMode="numeric"
-    //                 pattern="[0-9]*"
-    //                 value={j.weight || 0}
-    //                 onChange={(e) =>
-    //                   handleJudgmentChange(
-    //                     index,
-    //                     "weight",
-    //                     parseInt(e.target.value)
-    //                   )
-    //                 }
-    //               />
-    //             </div>
-    //           </div>
-    //         ))}
-    //         <Button onClick={() => addJudgment("yes")}>YES 요소 추가</Button>
-    //       </div>
-
-    //       <div className="w-1/2 space-y-4">
-    //         <div className="text-lg font-semibold">NO 요소</div>
-    //         {noJudgments.map((j, index) => (
-    //           <div
-    //             key={index}
-    //             className="flex flex-col border p-4 rounded-xl space-y-2"
-    //           >
-    //             <div className="flex justify-between items-start gap-2">
-    //               <Textarea
-    //                 className="flex-1"
-    //                 placeholder="고려사항 메모"
-    //                 value={j.why || ""}
-    //                 onChange={(e) =>
-    //                   handleJudgmentChange(index, "why", e.target.value)
-    //                 }
-    //               />
-    //               <Input
-    //                 className="w-[64px]"
-    //                 placeholder="가중치"
-    //                 type="text"
-    //                 inputMode="numeric"
-    //                 pattern="[0-9]*"
-    //                 value={j.weight || 0}
-    //                 onChange={(e) =>
-    //                   handleJudgmentChange(
-    //                     index,
-    //                     "weight",
-    //                     parseInt(e.target.value)
-    //                   )
-    //                 }
-    //               />
-    //             </div>
-    //           </div>
-    //         ))}
-    //         <Button onClick={() => addJudgment("no")}>NO 요소 추가</Button>
-    //       </div>
-    //     </div>
-
-    //     <Button onClick={calculateResult}>결과 계산</Button>
-    //     {autoResult && (
-    //       <div className="text-lg font-semibold">자동 결론: {autoResult}</div>
-    //     )}
-
-    //     <Textarea
-    //       placeholder="내가 실제 내린 결론"
-    //       value={userDecision}
-    //       onChange={(e) => setUserDecision(e.target.value)}
-    //     />
-    //     <Textarea
-    //       placeholder="결정에 대한 설명이나 코멘트"
-    //       value={comment}
-    //       onChange={(e) => setComment(e.target.value)}
-    //     />
-
-    //     <Button onClick={saveDecision}>
-    //       {decisionId ? "결정 수정" : "결정 저장하기"}
-    //     </Button>
-    //   </CardContent>
-    // </Card>
   );
 }
