@@ -43,6 +43,7 @@ export async function PUT(
       title: body.title,
       why: body.why,
       result: body.result,
+      createdAt: body.createdAt,
       judgments: {
         create: body.judgments.map((j: any) => ({
           verdict: j.verdict,

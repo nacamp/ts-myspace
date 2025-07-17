@@ -14,11 +14,15 @@ import {
 import type { Decision, Judgment, JudgmentCategory } from "@/generated/prisma";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
 
 // 입력용 타입 정의
 type EditableDecision = Partial<
-  Omit<Decision, "id" | "createdAt" | "updatedAt" | "judgments">
->;
+  Omit<Decision, "id" | "updatedAt" | "judgments">
+> & {
+  createdAtInput?: string;
+};
+
 type EditableJudgment = Partial<
   Omit<Judgment, "id" | "decisionId" | "decision" | "updatedAt">
 >;
@@ -103,6 +107,8 @@ export default function DecisionInputForm() {
           setDecision({
             title: data.title,
             why: data.why,
+            createdAt: data.createdAt,
+            createdAtInput: data.createdAt ? toYYYYMMDDfromDate(new Date(data.createdAt)) : "",
             result: data.result,
           });
           setJudgments(data.judgments);
@@ -118,8 +124,14 @@ export default function DecisionInputForm() {
     field: keyof EditableDecision,
     value: string
   ) => {
-    console.log(field, value);
-    setDecision((prev) => ({ ...prev, [field]: value }));
+    setDecision((prev) => {
+      if (field === "createdAtInput") {
+        const date = toDateFromYYYYMMDD(value);
+        return { ...prev, createdAt: date, createdAtInput: value };
+      }
+
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleJudgmentChange = (
@@ -164,8 +176,9 @@ export default function DecisionInputForm() {
   };
 
   const saveDecision = async () => {
+    const { createdAtInput, ...decisionToSend } = decision;
     const payload = {
-      ...decision,
+      ...decisionToSend,
       // result: autoResult,
       judgments,
     };
@@ -194,7 +207,7 @@ export default function DecisionInputForm() {
 
     if (res.ok) {
       alert("삭제 완료");
-      window.location.href = "/";
+      window.location.href = "/decision";
     } else {
       alert("삭제 실패");
     }
@@ -210,6 +223,15 @@ export default function DecisionInputForm() {
       </Button>
       <Card className="w-full mx-auto p-6 space-y-4">
         <CardContent className="space-y-4">
+          <Input
+            className="w-[100px]"
+            placeholder="날짜"
+            value={decision.createdAtInput || ""}
+            onChange={(e) =>
+              handleDecisionChange("createdAtInput", e.target.value)
+            }
+          />
+
           <Input
             placeholder="결정할 질문을 입력하세요"
             value={decision.title || ""}
@@ -366,9 +388,9 @@ export default function DecisionInputForm() {
           </div>
 
           <Button onClick={calculateResult}>결과 계산</Button>
-          {autoResult && (
+          {/* {autoResult && (
             <div className="text-lg font-semibold">자동 결론: {autoResult}</div>
-          )}
+          )} */}
 
           <Textarea
             placeholder="내가 실제 내린 결론"
@@ -379,13 +401,13 @@ export default function DecisionInputForm() {
             <Button onClick={saveDecision}>
               {decisionId ? "결정 수정" : "결정 저장하기"}
             </Button>
-            {decisionId && (
+            {decisionId > 0 && (
               <Button variant="destructive" onClick={deleteDecision}>
                 결정 삭제
               </Button>
             )}
           </div>
-
+           
           <div className="mt-8 space-y-4">
             <div className="text-lg font-semibold">카테고리별 참고 요소</div>
             {Object.entries(CATEGORY_TIPS).map(([category, items]) => (
