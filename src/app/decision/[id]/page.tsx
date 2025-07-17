@@ -93,13 +93,9 @@ export default function DecisionInputForm() {
     result: null,
   });
   const [judgments, setJudgments] = useState<EditableJudgment[]>([]);
-  const [userDecision, setUserDecision] = useState("");
-  const [comment, setComment] = useState("");
   const [autoResult, setAutoResult] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("here");
-    console.log(decisionId);
     if (decisionId) {
       fetch(`/api/decision/${decisionId}`)
         .then((res) => res.json())
@@ -107,7 +103,7 @@ export default function DecisionInputForm() {
           setDecision({
             title: data.title,
             why: data.why,
-            createdAt: data.createdAt,
+            createdAt: new Date(data.createdAt),
             createdAtInput: data.createdAt ? toYYYYMMDDfromDate(new Date(data.createdAt)) : "",
             result: data.result,
           });
@@ -158,6 +154,7 @@ export default function DecisionInputForm() {
       { verdict, category: "ETC", weight: 0, why: "" },
     ]);
   };
+  
   const deleteJudgment = (indexToDelete: number) => {
     setJudgments(judgments.filter((_, i) => i !== indexToDelete));
   };
@@ -179,10 +176,8 @@ export default function DecisionInputForm() {
     const { createdAtInput, ...decisionToSend } = decision;
     const payload = {
       ...decisionToSend,
-      // result: autoResult,
       judgments,
     };
-    console.log(payload);
     const method = decisionId ? "PUT" : "POST";
     const url = decisionId ? `/api/decision/${decisionId}` : "/api/decision";
 
@@ -388,9 +383,9 @@ export default function DecisionInputForm() {
           </div>
 
           <Button onClick={calculateResult}>결과 계산</Button>
-          {/* {autoResult && (
+          {autoResult && (
             <div className="text-lg font-semibold">자동 결론: {autoResult}</div>
-          )} */}
+          )}
 
           <Textarea
             placeholder="내가 실제 내린 결론"
