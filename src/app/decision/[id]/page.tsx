@@ -1,40 +1,28 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import type { Decision, Judgment, JudgmentCategory } from "@/generated/prisma";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
 
+import JudgmentSection from "./JudgmentSection";
+
 // 입력용 타입 정의
-type EditableDecision = Partial<
+export type EditableDecision = Partial<
   Omit<Decision, "id" | "updatedAt" | "judgments">
 > & {
   createdAtInput?: string;
 };
 
-type EditableJudgment = Partial<
+export type EditableJudgment = Partial<
   Omit<Judgment, "id" | "decisionId" | "decision" | "updatedAt">
 >;
-
-const categoryOptions = [
-  { value: "FACT", label: "사실" },
-  { value: "RESOURCE", label: "자원" },
-  { value: "FORECAST", label: "미래" },
-  { value: "VALUE", label: "가치" },
-  { value: "STAKEHOLDER", label: "관계" },
-  { value: "ETC", label: "기타" },
-];
 
 const CATEGORY_TIPS: Record<string, string[]> = {
   사실: [
@@ -104,7 +92,9 @@ export default function DecisionInputForm() {
             title: data.title,
             why: data.why,
             createdAt: new Date(data.createdAt),
-            createdAtInput: data.createdAt ? toYYYYMMDDfromDate(new Date(data.createdAt)) : "",
+            createdAtInput: data.createdAt
+              ? toYYYYMMDDfromDate(new Date(data.createdAt))
+              : "",
             result: data.result,
           });
           setJudgments(data.judgments);
@@ -154,7 +144,7 @@ export default function DecisionInputForm() {
       { verdict, category: "ETC", weight: 0, why: "" },
     ]);
   };
-  
+
   const deleteJudgment = (indexToDelete: number) => {
     setJudgments(judgments.filter((_, i) => i !== indexToDelete));
   };
@@ -239,147 +229,22 @@ export default function DecisionInputForm() {
           />
 
           <div className="flex space-x-4">
-            <div className="w-1/2 space-y-4">
-              <Button onClick={() => addJudgment("yes")}>YES 추가</Button>
-              {/* <div className="text-lg font-semibold">YES 요소</div> */}
-              {yesJudgments.map((j, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col border p-4 rounded-xl space-y-2"
-                >
-                  <div className="flex items-start gap-2">
-                    <Select
-                      value={j.category ?? ""}
-                      onValueChange={(value) =>
-                        handleJudgmentChange(
-                          judgments.indexOf(j),
-                          "category",
-                          value
-                        )
-                      }
-                    >
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue placeholder="카테고리" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoryOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      className="w-[64px]"
-                      placeholder="가중치"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={j.weight || 0}
-                      onChange={(e) =>
-                        handleJudgmentChange(
-                          judgments.indexOf(j),
-                          "weight",
-                          parseInt(e.target.value)
-                        )
-                      }
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteJudgment(judgments.indexOf(j))}
-                    >
-                      삭제
-                    </Button>
-                  </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <Textarea
-                      className="flex-1"
-                      placeholder="고려사항 메모"
-                      value={j.why || ""}
-                      onChange={(e) =>
-                        handleJudgmentChange(
-                          judgments.indexOf(j),
-                          "why",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="w-1/2 space-y-4">
-              <Button onClick={() => addJudgment("no")}>NO 추가</Button>
-              {noJudgments.map((j, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col border p-4 rounded-xl space-y-2"
-                >
-                  <div className="flex items-start gap-2">
-                    <Select
-                      value={j.category ?? ""}
-                      onValueChange={(value) =>
-                        handleJudgmentChange(
-                          judgments.indexOf(j),
-                          "category",
-                          value
-                        )
-                      }
-                    >
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue placeholder="카테고리" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoryOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Input
-                      className="w-[64px]"
-                      placeholder="가중치"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={j.weight || 0}
-                      onChange={(e) =>
-                        handleJudgmentChange(
-                          judgments.indexOf(j),
-                          "weight",
-                          parseInt(e.target.value)
-                        )
-                      }
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteJudgment(judgments.indexOf(j))}
-                    >
-                      삭제
-                    </Button>
-                  </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <Textarea
-                      className="flex-1"
-                      placeholder="고려사항 메모"
-                      value={j.why || ""}
-                      onChange={(e) =>
-                        handleJudgmentChange(
-                          judgments.indexOf(j),
-                          "why",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <JudgmentSection
+              title="YES"
+              judgments={judgments}
+              data={yesJudgments}
+              onChange={handleJudgmentChange}
+              onDelete={deleteJudgment}
+              onAdd={() => addJudgment("yes")}
+            />
+            <JudgmentSection
+              title="NO"
+              judgments={judgments}
+              data={noJudgments}
+              onChange={handleJudgmentChange}
+              onDelete={deleteJudgment}
+              onAdd={() => addJudgment("no")}
+            />
           </div>
 
           <Button onClick={calculateResult}>결과 계산</Button>
@@ -402,7 +267,7 @@ export default function DecisionInputForm() {
               </Button>
             )}
           </div>
-           
+
           <div className="mt-8 space-y-4">
             <div className="text-lg font-semibold">카테고리별 참고 요소</div>
             {Object.entries(CATEGORY_TIPS).map(([category, items]) => (
