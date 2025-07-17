@@ -4,16 +4,16 @@ import { getSearchDate } from "@/lib/utils";
 
 
 
-// export async function POST(req: Request) {
-//   const data = await req.json();
-//   const createdData = await prisma.depositProduct.create({ data });
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
 
-//   return NextResponse.json({
-//     success: true,
-//     id: createdData.id,
-//     // data: createdData
-//   });
-// }
+  const whereClause = {
+  };
+  const data = await prisma.decision.findMany({
+    where: whereClause, orderBy: {createdAt: 'asc'}
+  });
+  return NextResponse.json(data);
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
