@@ -23,6 +23,7 @@ const menuItems = [
   { name: "설정", href: "/settings", icon: Settings },
   { name: "freqtrade", href: "/freqtrade", icon: FileText },
   { name: "deposit", href: "/deposit", icon: FileText },
+  { name: "decision", href: "/decision", icon: FileText },
 ];
 
 export function AppSidebar() {
@@ -78,11 +79,7 @@ export function AppSidebar() {
                   <div
                     className={`
                     flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200
-                    ${
-                      isActive
-                        ? "bg-gray-950 border "
-                        : ""
-                    }
+                    ${isActive ? "bg-gray-950 border " : ""}
                   `}
                   >
                     <Icon className="h-4 w-4 mr-3" />

@@ -64,5 +64,41 @@ model DemandDepositTransaction {
   createdAt       DateTime        @default(now())
 }
 
+
+// enum: 카테고리를 제한된 값으로 강제
+enum JudgmentCategory {
+  FACT
+  RESOURCE
+  FORECAST
+  VALUE
+  STAKEHOLDER
+  ETC
+}
+
+model Decision {
+  id         Int       @id @default(autoincrement())
+  title      String    // 질문
+  why        String    // 질문 배경 또는 이유
+  result     String?    // 최종 결론 (자동이든 수동이든)
+  createdAt  DateTime?
+  updatedAt  DateTime  @updatedAt
+
+  judgments  Judgment[]            // 관련된 판단 요소들
+}
+
+model Judgment {
+  id         Int       @id @default(autoincrement())
+  decisionId Int
+  decision   Decision  @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  verdict    String               // "yes", "no", "undecided" 등
+  category   JudgmentCategory     // enum 기반: 사실/자원/미래/가치/관계
+  weight     Int
+  why        String               // 이유 메모
+  updatedAt  DateTime  @default(now())
+}
+
+
+
 // installment deposit
 // Time Deposit 
