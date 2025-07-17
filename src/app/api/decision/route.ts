@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const whereClause = {
   };
   const data = await prisma.decision.findMany({
-    where: whereClause, orderBy: {createdAt: 'asc'}
+    where: whereClause, orderBy: {createdAt: 'desc'}
   });
   return NextResponse.json(data);
 }
