@@ -98,6 +98,20 @@ model Judgment {
   updatedAt  DateTime  @default(now())
 }
 
+model CoinTimeline {
+  id        Int      @id @default(autoincrement())
+  coin      String   // "BTC", "ETH" 등
+  yyyymmdd  String
+
+  close     Float
+  volume    Float
+  rsi       Float
+  ema15     Float
+  ema50     Float
+  ema100    Float
+  cross15   Boolean
+  cross50   Boolean
+}
 
 
 // installment deposit
