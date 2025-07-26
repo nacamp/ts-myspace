@@ -46,9 +46,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: Request) {
   const data = await req.json();
-  await prisma.freqtrade.create({ data });
-  //TODO: id 정보를 클라이언트에게 전달하고, 클라이언트도 id를 state 뱐수로 관리하자
-  return NextResponse.json({ success: true });
+  const createdData = await prisma.freqtrade.create({ data });
+
+  return NextResponse.json({
+    success: true,
+    id: createdData.id,
+    // data: createdData
+  });
 }
 
 const parseKSTDate = (yyyymmdd: string) => {

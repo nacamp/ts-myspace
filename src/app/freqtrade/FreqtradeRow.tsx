@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
+
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -9,71 +11,47 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Freqtrade } from "@/generated/prisma";
 
-type RowProps = {
-  id?: string;
-  index: number;
-  strategy?: string;
-  exchange?: string;
-  coin?: string;
-  buyQty?: string | number;
-  sellQty?: string | number;
-  buyPrice?: string | number;
-  sellPrice?: string | number;
-  tradedAt?: string; // YYYYMMDD 형식의 문자열로 처리
-  //onProfitChange?: (index: number, profit: number) => void;
+import { toDateFromYYYYMMDD, toYYYYMMDDfromDate } from "@/lib/utils";
+import CommaNumberInput from "@/components/CommaNumberInput";
+
+type FreqtradeRowProps = {
+  row: Partial<Freqtrade>;
+  isNew?: boolean;
+  index?: number;
   onProfitChange?: (profit: number) => void;
 };
 
+type FreqtradeForm = Partial<Freqtrade> & {
+  tradedAtInput?: string;
+};
+
 export default function FreqtradeRow({
-  index = 0,
-  id = "",
-  strategy = "",
-  exchange = "",
-  coin = "",
-  buyQty: initialBuyQty = "",
-  sellQty: initialSellQty = "",
-  buyPrice: initialBuyPrice = "",
-  sellPrice: initialSellPrice = "",
-  tradedAt: initialTradedAt = "",
+  row,
+  isNew = false,
+  index,
   onProfitChange,
-}: RowProps) {
-  const [selectedStrategy, setSelectedStrategy] = useState(strategy);
-  const [selectedExchange, setSelectedExchange] = useState(exchange);
-  const [selectedCoin, setSelectedCoin] = useState(coin);
-  const [buyQty, setBuyQty] = useState(String(initialBuyQty ?? ""));
-  const [buyPrice, setBuyPrice] = useState(String(initialBuyPrice ?? ""));
-  const [sellQty, setSellQty] = useState(String(initialSellQty ?? ""));
-  const [sellPrice, setSellPrice] = useState(String(initialSellPrice ?? ""));
+}: FreqtradeRowProps) {
   const [profit, setProfit] = useState("");
   const [isVisible, setIsVisible] = useState(true);
-  const [tradedAt, setTradedAt] = useState(initialTradedAt);
+
+  const [form, setForm] = useState<FreqtradeForm>({
+    ...row,
+    tradedAtInput: row.tradedAt ? toYYYYMMDDfromDate(row.tradedAt) : "",
+  });
 
   useEffect(() => {
     handleCalc();
-  }, [selectedExchange, buyQty, buyPrice, sellQty, sellPrice]);
-
-  useEffect(() => {
-    setSelectedExchange(exchange);
-    setSelectedCoin(coin);
-  }, [exchange, coin]);
+  }, []);
 
   const handleCalc = async () => {
-    const _buyQty = parseFloat(buyQty);
-    const _buyPrice = parseFloat(buyPrice);
-    const _sellQty = parseFloat(sellQty);
-    const _sellPrice = parseFloat(sellPrice);
-
-    if (
-      !isNaN(_buyQty) &&
-      !isNaN(_sellQty) &&
-      !isNaN(_buyPrice) &&
-      !isNaN(_sellPrice)
-    ) {
+    if (form.buyQty && form.sellQty && form.buyPrice && form.sellPrice) {
       let fee = 0.0005;
-      if (selectedExchange === "Bithumb") fee = 0.0004;
+      if (form.exchange === "Bithumb") fee = 0.0004;
       const result =
-        _sellQty * _sellPrice * (1 - fee) - _buyQty * _buyPrice * (1 + fee);
+        form.sellQty * form.sellPrice * (1 - fee) -
+        form.buyQty * form.buyPrice * (1 + fee);
       setProfit(result.toFixed(0));
       onProfitChange?.(result); // 부모에 전달
     } else {
@@ -81,69 +59,51 @@ export default function FreqtradeRow({
     }
   };
 
-  const toDateFromYYYYMMDD = (yyyymmdd: string): Date => {
-    const yyyy = yyyymmdd.slice(0, 4);
-    const mm = yyyymmdd.slice(4, 6);
-    const dd = yyyymmdd.slice(6, 8);
-    return new Date(`${yyyy}-${mm}-${dd}T00:00:00+09:00`);
-  };
-  const handleClick = async (isSave: boolean) => {
-    const _buyQty = parseFloat(buyQty);
-    const _buyPrice = parseFloat(buyPrice);
-    const _sellQty = parseFloat(sellQty);
-    const _sellPrice = parseFloat(sellPrice);
+  const handleChange = (field: keyof FreqtradeForm, value: any) => {
+    console.log(value);
+    const updated = { ...form, [field]: value };
 
-    const form = {
-      id,
-      strategy: selectedStrategy,
-      exchange: selectedExchange,
-      coin: selectedCoin,
-      buyQty: _buyQty,
-      sellQty: _sellQty,
-      buyPrice: _buyPrice,
-      sellPrice: _sellPrice,
-      tradedAt: toDateFromYYYYMMDD(tradedAt),
-    };
-    const { id: _, ...rest } = form;
-    const body = isSave ? rest : form;
+    if (field === "tradedAtInput") {
+      updated.tradedAt = toDateFromYYYYMMDD(value);
+    }
+    setForm(updated);
+    handleCalc();
+  };
+
+  const handleSaveOrUpdate = async (isSave: boolean) => {
+    const { tradedAtInput, ...formToSend } = form;
+    const method = isSave ? "POST" : "PUT";
+    const url = "/api/freqtrade";
+
     try {
-      let res;
-      // TODO: save 후 id를 발급받지 못해서 버튼이 여전히 save 이다.
-      if (isSave) {
-        res = await fetch("/api/freqtrade", {
-          method: "POST",
-          body: JSON.stringify(body),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-      } else {
-        res = await fetch("/api/freqtrade", {
-          method: "PUT",
-          body: JSON.stringify(body),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-      }
+      const res = await fetch(url, {
+        method,
+        body: JSON.stringify(formToSend),
+        headers: { "Content-Type": "application/json" },
+      });
 
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ 저장 실패: " + data?.error);
-      } else {
-        console.log("✅ 저장 완료", data);
+        console.error("❌ 저장 실패:", data);
+        return;
+      }
+      toast.success("저장 완료"); //// toast("저장 완료")
+
+      // 공통 후처리 로직
+      if (isSave && data?.id) {
+        handleChange("id", data.id);
       }
     } catch (err) {
       console.error("❌ 네트워크 오류", err);
-      alert("서버 저장 중 오류 발생");
     }
   };
 
   const handleDelete = async () => {
+    const url = "/api/freqtrade";
     try {
-      const res = await fetch("/api/freqtrade", {
+      const res = await fetch(url, {
         method: "DELETE",
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: form.id }),
         headers: {
           "Content-Type": "application/json",
         },
@@ -151,31 +111,31 @@ export default function FreqtradeRow({
 
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ 저장 실패: " + data?.error);
+        console.error("❌ 삭제 실패:", data);
       } else {
         setIsVisible(false);
-        console.log("✅ 저장 완료", data);
+        toast.success("삭제 완료");
       }
     } catch (err) {
       console.error("❌ 네트워크 오류", err);
-      alert("서버 저장 중 오류 발생");
     }
   };
+
   if (!isVisible) return null;
   return (
     <div className="flex items-center gap-4">
-      <span className="w-[50px] text-right text-muted-foreground">
-        {index}
-      </span>
+      <span className="w-[50px] text-right text-muted-foreground">{index}</span>
       <Input
         placeholder="yyyymmdd"
         className="w-[100px]"
-        value={tradedAt}
-        onChange={(e) => setTradedAt(e.target.value)}
+        value={form.tradedAtInput}
+        onChange={(e) => handleChange("tradedAtInput", e.target.value)}
       />
 
-      {/* strategy */}
-      <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+      <Select
+        value={form.strategy ?? ""}
+        onValueChange={(value) => handleChange("strategy", value)}
+      >
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Strategy" />
         </SelectTrigger>
@@ -186,8 +146,10 @@ export default function FreqtradeRow({
         </SelectContent>
       </Select>
 
-      {/* Exchange */}
-      <Select value={selectedExchange} onValueChange={setSelectedExchange}>
+      <Select
+        value={form.exchange ?? ""}
+        onValueChange={(value) => handleChange("exchange", value)}
+      >
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Exchange" />
         </SelectTrigger>
@@ -197,8 +159,10 @@ export default function FreqtradeRow({
         </SelectContent>
       </Select>
 
-      {/* Coin */}
-      <Select value={selectedCoin} onValueChange={setSelectedCoin}>
+      <Select
+        value={form.coin ?? ""}
+        onValueChange={(value) => handleChange("coin", value)}
+      >
         <SelectTrigger className="w-[100px]">
           <SelectValue placeholder="Coin" />
         </SelectTrigger>
@@ -216,47 +180,41 @@ export default function FreqtradeRow({
         </SelectContent>
       </Select>
 
-      {/* Buy Price */}
-      <Input
+      <CommaNumberInput
+        value={form.buyPrice ?? null}
+        onChange={(val) => handleChange("buyPrice", val)}
         placeholder="Buy Price"
         className="w-[100px]"
-        value={buyPrice}
-        onChange={(e) => setBuyPrice(e.target.value)}
       />
 
-      {/* Buy Qty */}
-      <Input
+      <CommaNumberInput
+        value={form.buyQty ?? null}
+        onChange={(val) => handleChange("buyQty", val)}
         placeholder="Buy Qty"
         className="w-[100px]"
-        value={buyQty}
-        onChange={(e) => setBuyQty(e.target.value)}
       />
 
-      {/* Sell Price */}
-      <Input
+      <CommaNumberInput
+        value={form.sellPrice ?? null}
+        onChange={(val) => handleChange("sellPrice", val)}
         placeholder="Sell Price"
         className="w-[100px]"
-        value={sellPrice}
-        onChange={(e) => setSellPrice(e.target.value)}
       />
 
-      {/* Sell Qty */}
-      <Input
+      <CommaNumberInput
+        value={form.sellQty ?? null}
+        onChange={(val) => handleChange("sellQty", val)}
         placeholder="Sell Qty"
         className="w-[100px]"
-        value={sellQty}
-        onChange={(e) => setSellQty(e.target.value)}
       />
 
-      {/* Button */}
-      <Button className="w-[50px]" onClick={() => handleClick(!id)}>
-        {id ? "Update" : "Save"}
+      <Button className="w-[50px]" onClick={() => handleSaveOrUpdate(!form.id)}>
+        {form.id ? "Update" : "Save"}
       </Button>
       <Button className="w-[50px]" onClick={handleDelete}>
         Delete
       </Button>
 
-      {/* Profit */}
       <span className="w-[100px] text-right text-muted-foreground">
         {Number(profit).toLocaleString()}
       </span>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 
 type FieldType = "input" | "select";
 
+// TODO: 기본값도 들어가면 좋을것 같다.
 export interface SearchField {
   key: string;
   label: string;
