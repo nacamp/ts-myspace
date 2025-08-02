@@ -14,13 +14,18 @@ export default function CommaNumberInput({
   onChange,
   placeholder,
   className,
-  readOnly
+  readOnly,
 }: Props) {
   const [displayValue, setDisplayValue] = useState("");
 
   useEffect(() => {
     if (value !== null && !isNaN(value)) {
-      setDisplayValue(value.toLocaleString());
+      setDisplayValue(
+        value.toLocaleString("ko-KR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 10, // 소숫점 10자리까지 표시
+        })
+      );
     } else {
       setDisplayValue("");
     }
@@ -36,13 +41,17 @@ export default function CommaNumberInput({
     } else {
       onChange(null);
     }
-
     setDisplayValue(e.target.value); // 사용자가 타이핑한 값 그대로 유지
   };
 
   const handleBlur = () => {
     if (value !== null && !isNaN(value)) {
-      setDisplayValue(value.toLocaleString()); // blur 시 포맷 적용
+      setDisplayValue(
+        value.toLocaleString("ko-KR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 10,
+        })
+      );
     }
   };
 
