@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const date = searchParams.get("date"); // ex: "202507"
   const strategy = searchParams.get("strategy");
   const exchange = searchParams.get("exchange");
+  const coin = searchParams.get("coin");
 
   if (!date || ![6, 8].includes(date.length)) {
     return NextResponse.json(
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const year = Number(date.slice(0, 4));
   const month = Number(date.slice(4, 6)) - 1; // JS Date는 0-indexed month
-  let whereClause: any;
+  // let whereClause: any;
   let startKST; // = KST 00:00
   let endKST; // = 다음달 KST 00:00
   if (date.length == 6) {
@@ -28,19 +29,38 @@ export async function GET(req: NextRequest) {
     startKST = new Date(Date.UTC(year, month, day, -9, 0, 0)); // = KST 00:00
     endKST = new Date(Date.UTC(year, month, day + 1, -9, 0, 0)); // = 다음달 KST 00:00
   }
-  whereClause = {
+  const whereClause = {
     tradedAt: {
       gte: startKST,
       lt: endKST,
     },
+    ...(strategy && {
+      strategy
+    }),
+    ...(exchange && {
+      exchange
+    }),
+    ...(coin && {
+      coin
+    }),
   };
-  if (strategy) {
-    whereClause.strategy = strategy;
-  }
-  if (exchange) {
-    whereClause.exchange = exchange;
-  }
-  const data = await prisma.freqtrade.findMany({ where: whereClause, orderBy: {tradedAt: 'asc'} });
+
+  // whereClause = {
+  //   tradedAt: {
+  //     gte: startKST,
+  //     lt: endKST,
+  //   },
+  // };
+  // if (strategy) {
+  //   whereClause.strategy = strategy;
+  // }
+  // if (exchange) {
+  //   whereClause.exchange = exchange;
+  // }
+  const data = await prisma.freqtrade.findMany({
+    where: whereClause,
+    orderBy: { tradedAt: "asc" },
+  });
   return NextResponse.json(data);
 }
 
