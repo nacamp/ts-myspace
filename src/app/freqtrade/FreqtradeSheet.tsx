@@ -52,13 +52,12 @@ export default function FreqtradeSheet() {
     setRows(parsedData);
     setProfits(parsedData.map(() => 0));
   };
-  
 
   const handleAddRow = () => {
     setRows([
       ...rows,
       {
-        tradedAt : new Date(Date.now() - 9 * 60 * 60 * 1000),
+        tradedAt: new Date(Date.now() - 9 * 60 * 60 * 1000),
         strategy: "",
         exchange: "",
         coin: "",
@@ -81,6 +80,7 @@ export default function FreqtradeSheet() {
       options: [
         { label: "StrategyV1", value: "StrategyV1" },
         { label: "StrategyV11", value: "StrategyV11" },
+        { label: "Draft", value: "Draft" },
       ],
     },
     {
@@ -92,6 +92,23 @@ export default function FreqtradeSheet() {
         { label: "Upbit", value: "Upbit" },
       ],
     },
+    {
+      key: "coin",
+      label: "coin",
+      type: "select",
+      options: [
+        { label: "BTC", value: "BTC" },
+        { label: "ETH", value: "ETH" },
+        { label: "SOL", value: "SOL" },
+        { label: "ADA", value: "ADA" },
+        { label: "XRP", value: "XRP" },
+        { label: "LINK", value: "LINK" },
+        { label: "DOGE", value: "DOGE" },
+        { label: "IOST", value: "IOST" },
+        { label: "TRX", value: "TRX" },
+        { label: "SUI", value: "SUI" },
+      ],
+    },
   ];
 
   const handleSearchChange = (key: string, val: string) => {
@@ -101,7 +118,7 @@ export default function FreqtradeSheet() {
   const handleSearch = () => {
     fetchData(searchValues);
   };
-  
+
   return (
     <div className="flex flex-col gap-3 p-6">
       <Search
