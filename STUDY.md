@@ -1,3 +1,31 @@
+
+# debugging
+- launch - F5
+```bash
+vi .vscode/settings.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Next.js",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["dev"],
+      "port": 9229,
+      "env": {
+        "NODE_OPTIONS": "--inspect"
+      },
+      "console": "integratedTerminal",
+      "restart": true,
+      "protocol": "inspector",
+      "skipFiles": ["<node_internals>/**"]
+    },
+  ]
+}
+```
+
+
 # sqlite -> mariadb
 
 ## create shadow db
