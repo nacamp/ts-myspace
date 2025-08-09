@@ -1,3 +1,6 @@
+#
+node src/cli/saveCoinTimeline.js "2025-07-26 BTC-rsi: 60.52, Close: 160217000.0, 15:159441859, 50:152990656, 100:148584276, cross: False-False, ETH-rsi: 79.94, Close: 5078000.0, 15:4683264, 50:4021623, 100:3770132, cross: False-False, SOL-rsi: 62.09, Close: 254700.0, 15:243536, 50:225325, 100:226180, cross: False-False, XRP-rsi: 60.72, Close: 4280.0, 15:4246, 50:3665, 100:3508, cross: False-False"
+
 # [id] path 적용
 - https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes
 
