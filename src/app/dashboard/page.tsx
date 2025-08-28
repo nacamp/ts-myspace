@@ -2,8 +2,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
+/** =========================
+ * 공통 타입
+ * ========================= */
 type Candle = {
-  candle_date_time_kst: string;
+  candle_date_time_kst: string; // "YYYY-MM-DD..." or "YYYYMMDD"도 들어올 수 있음(백엔드에서 맞춰줬다면 OK)
   opening_price: number;
   high_price: number;
   low_price: number;
@@ -13,20 +16,23 @@ type Candle = {
 };
 
 type CandleApiResponse = {
-  market: string;
+  market?: string; // coin용
+  symbol?: string; // stock용
   count: number;
   period: number;
   lastRSI?: number | null;
   candles: Candle[]; // 최신 → 과거
 };
 
-const MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP"];
+/** =========================
+ * 상수/필드 정의
+ * ========================= */
+const COIN_MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP"] as const;
+const STOCK_SYMBOLS = ["069500"] as const; // 확장 가능
 const LATEST_N = 5;
 
-// 숫자 키만 추출 (문자열 키인 candle_date_time_kst 제외)
 type NumericKey = Exclude<keyof Candle, "candle_date_time_kst">;
 
-// FIELDS를 날짜/숫자 구분(discriminated union)
 type Field =
   | { kind: "date"; label: string }
   | { kind: "num"; key: NumericKey; label: string; digits?: number };
@@ -41,9 +47,16 @@ const FIELDS: Field[] = [
   { kind: "num", key: "rsi",           label: "RSI",    digits: 2 },
 ];
 
-function toMD(kstIso: string) {
-  const m = kstIso.slice(5, 7).replace(/^0/, "");
-  const d = kstIso.slice(8, 10).replace(/^0/, "");
+/** =========================
+ * 유틸
+ * ========================= */
+function toMD(kst: string) {
+  // "YYYY-MM-DD..." or "YYYYMMDD" 모두 허용
+  const iso = kst.includes("-")
+    ? kst
+    : `${kst.slice(0, 4)}-${kst.slice(4, 6)}-${kst.slice(6, 8)}`;
+  const m = iso.slice(5, 7).replace(/^0/, "");
+  const d = iso.slice(8, 10).replace(/^0/, "");
   return `${m}월 ${d}일`;
 }
 
@@ -55,27 +68,99 @@ function formatNumber(n: number | null | undefined, digits = 0, fallback = "-") 
   });
 }
 
+/** =========================
+ * 데이터 로더
+ * ========================= */
+async function fetchCoins(markets: readonly string[], count = LATEST_N, period = 14) {
+  const res = await Promise.all(
+    markets.map(async (m) => {
+      const url = `/api/coin/candle?market=${encodeURIComponent(m)}&count=${count}&period=${period}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`[coin] ${m} HTTP ${r.status}`);
+      const j: CandleApiResponse = await r.json();
+      return [m, j] as const;
+    })
+  );
+  // Record<market, response>
+  return Object.fromEntries(res) as Record<string, CandleApiResponse>;
+}
+
+async function fetchStocks(symbols: readonly string[], count = LATEST_N, period = 14) {
+  const res = await Promise.all(
+    symbols.map(async (s) => {
+      const url = `/api/stock/candle?symbol=${encodeURIComponent(s)}&count=${count}&period=${period}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`[stock] ${s} HTTP ${r.status}`);
+      const j: CandleApiResponse = await r.json();
+      return [s, j] as const;
+    })
+  );
+  // Record<symbol, response>
+  return Object.fromEntries(res) as Record<string, CandleApiResponse>;
+}
+
+/** =========================
+ * 그리드 컴포넌트
+ * ========================= */
+function MetricsGrid({ candles }: { candles: Candle[] }) {
+  const latestN = candles.slice(0, LATEST_N); // 최신 → 과거
+  return (
+    <div
+      className="grid gap-x-3 gap-y-2"
+      style={{ gridTemplateColumns: `120px repeat(${LATEST_N}, minmax(0,1fr))` }}
+    >
+      {FIELDS.map((field) => (
+        <React.Fragment key={field.label}>
+          {/* 라벨 셀 */}
+          <div className="font-medium text-gray-600">{field.label}</div>
+
+          {/* 값 셀들 */}
+          {latestN.map((candle) => {
+            if (field.kind === "date") {
+              return (
+                <div
+                  key={`date-${candle.candle_date_time_kst}`}
+                  className="text-right font-normal text-gray-700"
+                >
+                  {toMD(candle.candle_date_time_kst)}
+                </div>
+              );
+            } else {
+              const value = candle[field.key] as number | null | undefined;
+              return (
+                <div
+                  key={`${field.key}-${candle.candle_date_time_kst}`}
+                  className="text-right tabular-nums font-mono"
+                >
+                  {formatNumber(value, field.digits ?? 0, "-")}
+                </div>
+              );
+            }
+          })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** =========================
+ * 메인 페이지
+ * ========================= */
 export default function DashboardPage() {
-  const [dataByMarket, setDataByMarket] = useState<Record<string, CandleApiResponse>>({});
+  const [coinData, setCoinData] = useState<Record<string, CandleApiResponse>>({});
+  const [stockData, setStockData] = useState<Record<string, CandleApiResponse>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const qs = (m: string) =>
-          `/api/coin/candle?market=${encodeURIComponent(m)}&count=${LATEST_N}&period=14`;
-        const res = await Promise.all(
-          MARKETS.map(async (m) => {
-            const r = await fetch(qs(m));
-            if (!r.ok) throw new Error(`${m} HTTP ${r.status}`);
-            const j: CandleApiResponse = await r.json();
-            return [m, j] as const;
-          })
-        );
-        const map: Record<string, CandleApiResponse> = {};
-        for (const [m, j] of res) map[m] = j;
-        setDataByMarket(map);
+        const [coins, stocks] = await Promise.all([
+          fetchCoins(COIN_MARKETS, LATEST_N, 14),
+          fetchStocks(STOCK_SYMBOLS, LATEST_N, 14),
+        ]);
+        setCoinData(coins);
+        setStockData(stocks);
       } catch (e: any) {
         setError(e?.message ?? String(e));
       } finally {
@@ -88,69 +173,63 @@ export default function DashboardPage() {
   if (error)   return <div className="p-6 text-red-600">에러: {error}</div>;
 
   return (
-    <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-bold">📊 Coin Dashboard</h1>
+    <div className="p-6 space-y-10">
+      <h1 className="text-2xl font-bold">📊 Dashboard</h1>
 
-      {MARKETS.map((market) => {
-        const data = dataByMarket[market];
-        if (!data) return null;
+      {/* ===== Coin 섹션 ===== */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">🪙 Coins</h2>
+        <div className="space-y-6">
+          {COIN_MARKETS.map((market) => {
+            const data = coinData[market];
+            if (!data) return null;
+            return (
+              <Card key={market}>
+                <CardHeader className="pb-3">
+                  <div className="text-lg font-semibold">{market}</div>
+                  <div className="text-xs text-gray-500">
+                    RSI({data.period})
+                    {typeof data.lastRSI !== "undefined"
+                      ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 2, "-")}`
+                      : ""}
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm overflow-x-auto">
+                  <MetricsGrid candles={data.candles} />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
 
-        const latestN = data.candles.slice(0, LATEST_N); // 최신 → 과거
-
-        return (
-          <section key={market}>
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="text-xl font-semibold">{market}</div>
-                <div className="text-xs text-gray-500">
-                  RSI({data.period})
-                  {typeof data.lastRSI !== "undefined" ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 2, "-")}` : ""}
-                </div>
-              </CardHeader>
-
-              <CardContent className="text-sm overflow-x-auto">
-                <div
-                  className="grid gap-x-3 gap-y-2"
-                  style={{ gridTemplateColumns: `120px repeat(${LATEST_N}, minmax(0,1fr))` }}
-                >
-                  {FIELDS.map((field) => (
-                    <React.Fragment key={field.label}>
-                      {/* 라벨 셀 */}
-                      <div className="font-medium text-gray-600">{field.label}</div>
-
-                      {/* 값 셀들 */}
-                      {latestN.map((candle) => {
-                        if (field.kind === "date") {
-                          // 날짜는 왼쪽 정렬
-                          return (
-                            <div
-                              key={`date-${candle.candle_date_time_kst}`}
-                              className="text-right font-normal text-gray-700"
-                            >
-                              {toMD(candle.candle_date_time_kst)}
-                            </div>
-                          );
-                        } else {
-                          // 숫자는 오른쪽 정렬 (탭룰러 숫자 + 모노스페이스)
-                          const value = candle[field.key] as number | null | undefined; // NumericKey로 안전
-                          return (
-                            <div
-                              key={`${field.key}-${candle.candle_date_time_kst}`}
-                              className="text-right tabular-nums font-mono"
-                            >
-                              {formatNumber(value, field.digits ?? 0, "-")}
-                            </div>
-                          );
-                        }
-                      })}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        );
-      })}
+      {/* ===== Stock 섹션 ===== */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">📈 Stocks</h2>
+        <div className="space-y-6">
+          {STOCK_SYMBOLS.map((symbol) => {
+            const data = stockData[symbol];
+            if (!data) return null;
+            const title = `${symbol}${symbol === "069500" ? " · KODEX 200" : ""}`;
+            return (
+              <Card key={symbol}>
+                <CardHeader className="pb-3">
+                  <div className="text-lg font-semibold">{title}</div>
+                  <div className="text-xs text-gray-500">
+                    RSI({data.period})
+                    {typeof data.lastRSI !== "undefined"
+                      ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 2, "-")}`
+                      : ""}
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm overflow-x-auto">
+                  <MetricsGrid candles={data.candles} />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

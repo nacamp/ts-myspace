@@ -2,6 +2,7 @@ import { z } from "zod";
 const schema = z.object({
   DATABASE_URL: z.string(),
   SHADOW_DATABASE_URL: z.string(),
+  KIS_BASE_URL: z.string(), 
   KIS_APP_KEY: z.string(),
   KIS_APP_SECRET: z.string(),
   // ME: z.coerce.number(),
