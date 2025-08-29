@@ -1,19 +1,19 @@
 // app/api/kis/daily-rsi/route.ts
 // export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
-import { RSI } from "trading-signals";
-import { env } from "@/config/env.server";
-import { getKisToken } from "@/services/kis.server";
+import { NextRequest, NextResponse } from 'next/server';
+import { RSI } from 'trading-signals';
+import { env } from '@/config/env.server';
+import { getKisToken } from '@/services/kis.server';
 
 // KIS 일봉 응답(하루치)
 type KisDailyItem = {
   stck_bsop_date: string; // YYYYMMDD
-  stck_clpr: string;      // 종가
-  stck_oprc: string;      // 시가
-  stck_hgpr: string;      // 고가
-  stck_lwpr: string;      // 저가
-  acml_vol: string;       // 거래량
+  stck_clpr: string; // 종가
+  stck_oprc: string; // 시가
+  stck_hgpr: string; // 고가
+  stck_lwpr: string; // 저가
+  acml_vol: string; // 거래량
   acml_tr_pbmn?: string;
 };
 
@@ -35,31 +35,34 @@ function computeRSISeriesAsc(pricesAsc: number[], period: number): (number | nul
     rsi.update(p);
     if (!rsi.isStable) return null;
     const v: any = rsi.getResultOrThrow();
-    return typeof v?.toNumber === "function" ? v.toNumber() : parseFloat(v.toString());
+    return typeof v?.toNumber === 'function' ? v.toNumber() : parseFloat(v.toString());
   });
 }
 
 function formatDate(date: Date): string {
   const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}${mm}${dd}`;
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { symbol: string } }, // ← 여기서 code를 받음
+) {
   try {
     const { searchParams } = new URL(req.url);
 
     // --- Query params ---
-    const symbol = searchParams.get("symbol") ?? "069500"; // KODEX 200
-    const count = Math.max(1, Number(searchParams.get("count") ?? 3));
-    const period = Math.max(2, Number(searchParams.get("period") ?? 14));
+    const symbol = params.symbol || '069500'; // KODEX 200
+    const count = Math.max(1, Number(searchParams.get('count') ?? 3));
+    const period = Math.max(2, Number(searchParams.get('period') ?? 14));
 
     // --- 환경값 ---
     const BASE = env.KIS_BASE_URL; // 검증된 값
     const APP_KEY = env.KIS_APP_KEY;
     const APP_SECRET = env.KIS_APP_SECRET;
-    const TR_ID = "FHKST03010100"; // 기간별 시세(일/주/월/년)
+    const TR_ID = 'FHKST03010100'; // 기간별 시세(일/주/월/년)
 
     // --- 조회 구간: 오늘을 end, (period + count - 1)일 전을 start ---
     const endDateObj = new Date();
@@ -69,20 +72,20 @@ export async function GET(req: NextRequest) {
     const end = formatDate(endDateObj);
 
     // --- URL 구성 ---
-    const url = new URL("/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice", BASE);
-    url.searchParams.set("FID_COND_MRKT_DIV_CODE", "J");
-    url.searchParams.set("FID_INPUT_ISCD", symbol);
-    url.searchParams.set("FID_PERIOD_DIV_CODE", "D"); // 일봉
-    url.searchParams.set("FID_ORG_ADJ_PRC", "0");     // 수정주가 권장
-    url.searchParams.set("FID_INPUT_DATE_1", start);
-    url.searchParams.set("FID_INPUT_DATE_2", end);
+    const url = new URL('/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice', BASE);
+    url.searchParams.set('FID_COND_MRKT_DIV_CODE', 'J');
+    url.searchParams.set('FID_INPUT_ISCD', symbol);
+    url.searchParams.set('FID_PERIOD_DIV_CODE', 'D'); // 일봉
+    url.searchParams.set('FID_ORG_ADJ_PRC', '0'); // 수정주가 권장
+    url.searchParams.set('FID_INPUT_DATE_1', start);
+    url.searchParams.set('FID_INPUT_DATE_2', end);
 
     // --- 토큰 획득 + 호출 ---
     const accessToken = await getKisToken();
     const kisRes = await fetch(url.toString(), {
-      method: "GET",
+      method: 'GET',
       headers: {
-        "Content-Type": "application/json; charset=utf-8",
+        'Content-Type': 'application/json; charset=utf-8',
         authorization: `Bearer ${accessToken}`,
         appkey: APP_KEY,
         appsecret: APP_SECRET,
@@ -92,7 +95,7 @@ export async function GET(req: NextRequest) {
 
     if (!kisRes.ok) {
       const detail = await kisRes.text();
-      return NextResponse.json({ error: "KIS API error", detail }, { status: kisRes.status });
+      return NextResponse.json({ error: 'KIS API error', detail }, { status: kisRes.status });
     }
 
     const data = await kisRes.json();
@@ -108,7 +111,7 @@ export async function GET(req: NextRequest) {
         count: 0,
         candles: [] as CandleWithRSI[],
         lastRSI: null,
-        note: "Not enough candles from KIS to compute RSI",
+        note: 'Not enough candles from KIS to compute RSI',
       });
     }
 
@@ -116,7 +119,7 @@ export async function GET(req: NextRequest) {
     const rowsAsc = [...rows].reverse();
     const closesAsc = rowsAsc.map((r) => Number(r.stck_clpr));
     const rsiAsc = computeRSISeriesAsc(closesAsc, period); // 과거→최신
-    const rsiDesc = [...rsiAsc].reverse();                 // 다시 최신→과거
+    const rsiDesc = [...rsiAsc].reverse(); // 다시 최신→과거
 
     // 최신 count개만 사용
     const latestRowsDesc = rows.slice(0, Math.min(count, rows.length));
@@ -147,8 +150,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: "Unexpected server error", detail: err?.message ?? String(err) },
-      { status: 500 }
+      { error: 'Unexpected server error', detail: err?.message ?? String(err) },
+      { status: 500 },
     );
   }
 }
