@@ -3,23 +3,26 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 /** =========================
- * 공통 타입
+ * 공통 타입 (Freqtrade OHLCV 호환)
  * ========================= */
 type Candle = {
-  candle_date_time_kst: string; // "YYYY-MM-DD..." or "YYYYMMDD"도 들어올 수 있음(백엔드에서 맞춰줬다면 OK)
-  opening_price: number;
-  high_price: number;
-  low_price: number;
-  trade_price: number;
-  volume: number;
+  timestamp: string; // "YYYY-MM-DDTHH:mm:ss" (KST 가정)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  sma15: number | null;
+  sma50: number | null;
   rsi: number | null;
 };
 
 type CandleApiResponse = {
-  market?: string; // coin용
-  symbol?: string; // stock용
+  market?: string; // coin
+  index?: string; // stock index (KIS)
+  symbol?: string; // stock item (KIS)
   count: number;
-  period: number;
+  period?: number;
+  rsiPeriod?: number;
   lastRSI?: number | null;
   candles: Candle[]; // 최신 → 과거
 };
@@ -28,40 +31,65 @@ type CandleApiResponse = {
  * 상수/필드 정의
  * ========================= */
 const COIN_MARKETS = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'] as const;
-const STOCK_SYMBOLS = ['0001'] as const; // 확장 가능
+
+// 지수 + 개별 종목
+const STOCK_INDICES = ['0001'] as const; // 예: 0001(KOSPI)
+const INDEX_LABEL: Record<string, string> = { '0001': 'KOSPI' };
+
+const STOCK_SYMBOLS = ['069500', '114260', '438330'] as const; // 예: KODEX200, 삼성전자, NAVER
+const SYMBOL_LABEL: Record<string, string> = {
+  '069500': 'KODEX 200',
+  '114260': 'KODEX 국고3년채',
+  '438330': 'TIGER 우량회사채액티브',
+};
+
 const LATEST_N = 5;
 
-type NumericKey = Exclude<keyof Candle, 'candle_date_time_kst'>;
+type NumericKey = Exclude<keyof Candle, 'timestamp'>;
 
-type Field = { kind: 'date'; label: string } | { kind: 'num'; key: NumericKey; label: string; digits?: number };
+type Field = { kind: 'string'; label: string } | { kind: 'num'; key: NumericKey; label: string; digits?: number };
 
 const FIELDS: Field[] = [
-  { kind: 'date', label: '날짜' },
-  { kind: 'num', key: 'trade_price', label: '종가', digits: 0 },
-  { kind: 'num', key: 'opening_price', label: '시가', digits: 0 },
-  { kind: 'num', key: 'high_price', label: '고가', digits: 0 },
-  { kind: 'num', key: 'low_price', label: '저가', digits: 0 },
-  { kind: 'num', key: 'volume', label: '거래량', digits: 0 },
-  { kind: 'num', key: 'rsi', label: 'RSI', digits: 2 },
+  { kind: 'string', label: '날짜' },
+  { kind: 'num', key: 'close', label: '종가' },
+  { kind: 'num', key: 'open', label: '시가' },
+  { kind: 'num', key: 'high', label: '고가' },
+  { kind: 'num', key: 'low', label: '저가' },
+  { kind: 'num', key: 'sma15', label: 'SMA15' },
+  { kind: 'num', key: 'sma50', label: 'SMA50' },
+  { kind: 'num', key: 'rsi', label: 'RSI' },
 ];
 
 /** =========================
- * 유틸
+ * 유틸 (KST ISO 문자열 처리)
  * ========================= */
-function toMD(kst: string) {
-  // "YYYY-MM-DD..." or "YYYYMMDD" 모두 허용
-  const iso = kst.includes('-') ? kst : `${kst.slice(0, 4)}-${kst.slice(4, 6)}-${kst.slice(6, 8)}`;
-  const m = iso.slice(5, 7).replace(/^0/, '');
-  const d = iso.slice(8, 10).replace(/^0/, '');
+function parseKstIsoToUtcMs(iso: string): number {
+  if (!iso) return NaN;
+  if (/Z|[+\-]\d{2}:\d{2}$/.test(iso)) return Date.parse(iso);
+  return Date.parse(`${iso}+09:00`);
+}
+function ymdKST(msUtc: number) {
+  const d = new Date(msUtc + 9 * 60 * 60 * 1000);
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
+}
+function sameKstDay(aMsUtc: number, bMsUtc: number) {
+  const A = ymdKST(aMsUtc);
+  const B = ymdKST(bMsUtc);
+  return A.y === B.y && A.m === B.m && A.d === B.d;
+}
+function toDateLabelFromKstIso(iso: string) {
+  const ts = parseKstIsoToUtcMs(iso);
+  if (!Number.isFinite(ts)) return '-';
+  const now = Date.now();
+  if (sameKstDay(ts, now)) return '오늘';
+  const yesterday = now - 24 * 60 * 60 * 1000;
+  if (sameKstDay(ts, yesterday)) return '어제';
+  const { m, d } = ymdKST(ts);
   return `${m}월 ${d}일`;
 }
-
 function formatNumber(n: number | null | undefined, digits = 0, fallback = '-') {
   if (n === null || n === undefined || Number.isNaN(n)) return fallback;
-  return n.toLocaleString(undefined, {
-    maximumFractionDigits: digits,
-    minimumFractionDigits: digits,
-  });
+  return n.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
 /** =========================
@@ -77,21 +105,34 @@ async function fetchCoins(markets: readonly string[], count = LATEST_N, period =
       return [m, j] as const;
     }),
   );
-  // Record<market, response>
   return Object.fromEntries(res) as Record<string, CandleApiResponse>;
 }
 
-async function fetchStocks(symbols: readonly string[], count = LATEST_N, period = 14) {
+// 지수
+async function fetchStockIndices(indices: readonly string[], period = 14) {
   const res = await Promise.all(
-    symbols.map(async (s) => {
-      const url = `/api/stock/index/${s}/candle?count=${count}&period=${period}`;
+    indices.map(async (code) => {
+      const url = `/api/stock/index/${encodeURIComponent(code)}/candle?period=${period}`;
       const r = await fetch(url);
-      if (!r.ok) throw new Error(`[stock] ${s} HTTP ${r.status}`);
+      if (!r.ok) throw new Error(`[index] ${code} HTTP ${r.status}`);
       const j: CandleApiResponse = await r.json();
-      return [s, j] as const;
+      return [code, j] as const;
     }),
   );
-  // Record<symbol, response>
+  return Object.fromEntries(res) as Record<string, CandleApiResponse>;
+}
+
+// 개별 종목
+async function fetchStockItems(symbols: readonly string[], period = 14) {
+  const res = await Promise.all(
+    symbols.map(async (sym) => {
+      const url = `/api/stock/item/${encodeURIComponent(sym)}/candle?period=${period}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`[symbol] ${sym} HTTP ${r.status}`);
+      const j: CandleApiResponse = await r.json();
+      return [sym, j] as const;
+    }),
+  );
   return Object.fromEntries(res) as Record<string, CandleApiResponse>;
 }
 
@@ -99,27 +140,29 @@ async function fetchStocks(symbols: readonly string[], count = LATEST_N, period 
  * 그리드 컴포넌트
  * ========================= */
 function MetricsGrid({ candles }: { candles: Candle[] }) {
-  const latestN = candles.slice(0, LATEST_N); // 최신 → 과거
+  const latestN = candles.slice(0, LATEST_N);
+  const cols = latestN.length;
   return (
-    <div className="grid gap-x-3 gap-y-2" style={{ gridTemplateColumns: `120px repeat(${LATEST_N}, minmax(0,1fr))` }}>
+    <div className="grid gap-x-3 gap-y-2" style={{ gridTemplateColumns: `120px repeat(${cols}, minmax(0,1fr))` }}>
       {FIELDS.map((field) => (
         <React.Fragment key={field.label}>
-          {/* 라벨 셀 */}
           <div className="font-medium text-gray-600">{field.label}</div>
-
-          {/* 값 셀들 */}
           {latestN.map((candle) => {
-            if (field.kind === 'date') {
+            if (field.kind === 'string') {
               return (
-                <div key={`date-${candle.candle_date_time_kst}`} className="text-right font-normal text-gray-700">
-                  {toMD(candle.candle_date_time_kst)}
+                <div
+                  key={`date-${candle.timestamp}`}
+                  className="text-right font-normal text-gray-700"
+                  title={candle.timestamp + ' KST'}
+                >
+                  {toDateLabelFromKstIso(candle.timestamp)}
                 </div>
               );
             } else {
               const value = candle[field.key] as number | null | undefined;
               return (
-                <div key={`${field.key}-${candle.candle_date_time_kst}`} className="text-right tabular-nums font-mono">
-                  {formatNumber(value, field.digits ?? 0, '-')}
+                <div key={`${field.key}-${candle.timestamp}`} className="text-right tabular-nums font-mono">
+                  {formatNumber(value, 0, '-')}
                 </div>
               );
             }
@@ -135,19 +178,22 @@ function MetricsGrid({ candles }: { candles: Candle[] }) {
  * ========================= */
 export default function DashboardPage() {
   const [coinData, setCoinData] = useState<Record<string, CandleApiResponse>>({});
-  const [stockData, setStockData] = useState<Record<string, CandleApiResponse>>({});
+  const [indexData, setIndexData] = useState<Record<string, CandleApiResponse>>({});
+  const [symbolData, setSymbolData] = useState<Record<string, CandleApiResponse>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [coins, stocks] = await Promise.all([
+        const [coins, indices, symbols] = await Promise.all([
           fetchCoins(COIN_MARKETS, LATEST_N, 14),
-          fetchStocks(STOCK_SYMBOLS, LATEST_N, 14),
+          fetchStockIndices(STOCK_INDICES, 14),
+          fetchStockItems(STOCK_SYMBOLS, 14),
         ]);
         setCoinData(coins);
-        setStockData(stocks);
+        setIndexData(indices);
+        setSymbolData(symbols);
       } catch (e: any) {
         setError(e?.message ?? String(e));
       } finally {
@@ -160,23 +206,24 @@ export default function DashboardPage() {
   if (error) return <div className="p-6 text-red-600">에러: {error}</div>;
 
   return (
-    <div className="p-6 space-y-10">
+    <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold">📊 Dashboard</h1>
 
-      {/* ===== Coin 섹션 ===== */}
+      {/* ===== Coins ===== */}
       <section>
         <h2 className="text-xl font-semibold mb-3">🪙 Coins</h2>
-        <div className="space-y-6">
+        <div className="flex flex-row gap-6 flex-wrap">
           {COIN_MARKETS.map((market) => {
             const data = coinData[market];
             if (!data) return null;
+            const period = data.period ?? data.rsiPeriod;
             return (
-              <Card key={market}>
+              <Card key={market} className="w-[420px]">
                 <CardHeader className="pb-3">
                   <div className="text-lg font-semibold">{market}</div>
                   <div className="text-xs text-gray-500">
-                    RSI({data.period})
-                    {typeof data.lastRSI !== 'undefined' ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 2, '-')}` : ''}
+                    {period ? `RSI(${period})` : 'RSI'}
+                    {typeof data.lastRSI !== 'undefined' ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 0, '-')}` : ''}
                   </div>
                 </CardHeader>
                 <CardContent className="text-sm overflow-x-auto">
@@ -188,21 +235,45 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ===== Stock 섹션 ===== */}
+      {/* ===== Indices & Stocks (한 줄) ===== */}
       <section>
-        <h2 className="text-xl font-semibold mb-3">📈 Stocks</h2>
-        <div className="space-y-6">
-          {STOCK_SYMBOLS.map((symbol) => {
-            const data = stockData[symbol];
+        <h2 className="text-xl font-semibold mb-3">📈 Indices & Stocks</h2>
+        <div className="flex flex-row gap-6 flex-wrap">
+          {/* 지수 카드 */}
+          {STOCK_INDICES.map((code) => {
+            const data = indexData[code];
             if (!data) return null;
-            const title = `${symbol}${symbol === '069500' ? ' · KODEX 200' : ''}`;
+            const period = data.period ?? data.rsiPeriod;
+            const title = `${INDEX_LABEL[code] ?? code} (${code})`;
             return (
-              <Card key={symbol}>
+              <Card key={`idx-${code}`} className="w-[420px]">
                 <CardHeader className="pb-3">
                   <div className="text-lg font-semibold">{title}</div>
                   <div className="text-xs text-gray-500">
-                    RSI({data.period})
-                    {typeof data.lastRSI !== 'undefined' ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 2, '-')}` : ''}
+                    {period ? `RSI(${period})` : 'RSI'}
+                    {typeof data.lastRSI !== 'undefined' ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 0, '-')}` : ''}
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm overflow-x-auto">
+                  <MetricsGrid candles={data.candles} />
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {/* 개별 종목 카드 */}
+          {STOCK_SYMBOLS.map((sym) => {
+            const data = symbolData[sym];
+            if (!data) return null;
+            const period = data.period ?? data.rsiPeriod;
+            const title = `${SYMBOL_LABEL[sym] ?? sym} (${sym})`;
+            return (
+              <Card key={`sym-${sym}`} className="w-[420px]">
+                <CardHeader className="pb-3">
+                  <div className="text-lg font-semibold">{title}</div>
+                  <div className="text-xs text-gray-500">
+                    {period ? `RSI(${period})` : 'RSI'}
+                    {typeof data.lastRSI !== 'undefined' ? ` · 마지막 RSI: ${formatNumber(data.lastRSI, 0, '-')}` : ''}
                   </div>
                 </CardHeader>
                 <CardContent className="text-sm overflow-x-auto">
