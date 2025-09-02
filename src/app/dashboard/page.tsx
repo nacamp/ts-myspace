@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { CandlesResponse, CandlesResponseSchema } from '@/shared';
 
 /** =========================
  * 공통 타입 (Freqtrade OHLCV 호환)
@@ -101,11 +102,15 @@ async function fetchCoins(markets: readonly string[], count = LATEST_N, period =
       const url = `/api/coin/candle?market=${encodeURIComponent(m)}&count=${count}&period=${period}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error(`[coin] ${m} HTTP ${r.status}`);
-      const j: CandleApiResponse = await r.json();
-      return [m, j] as const;
+      const json = await r.json();
+      console.log(json);
+      const parsed = CandlesResponseSchema.parse(json);
+      return [m, parsed] as const;
+      // const j: CandleApiResponse = await r.json();
+      // return [m, j] as const;
     }),
   );
-  return Object.fromEntries(res) as Record<string, CandleApiResponse>;
+  return Object.fromEntries(res) as Record<string, CandlesResponse>;
 }
 
 // 지수
@@ -115,6 +120,9 @@ async function fetchStockIndices(indices: readonly string[], period = 14) {
       const url = `/api/stock/index/${encodeURIComponent(code)}/candle?period=${period}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error(`[index] ${code} HTTP ${r.status}`);
+      // const json = await r.json();
+      // const parsed = CandlesResponseSchema.parse(json);
+      // return [code, parsed] as const;
       const j: CandleApiResponse = await r.json();
       return [code, j] as const;
     }),
@@ -131,6 +139,9 @@ async function fetchStockItems(symbols: readonly string[], period = 14) {
       if (!r.ok) throw new Error(`[symbol] ${sym} HTTP ${r.status}`);
       const j: CandleApiResponse = await r.json();
       return [sym, j] as const;
+      // const json = await r.json();
+      // const parsed = CandlesResponseSchema.parse(json);
+      // return [sym, parsed] as const;
     }),
   );
   return Object.fromEntries(res) as Record<string, CandleApiResponse>;
@@ -177,7 +188,7 @@ function MetricsGrid({ candles }: { candles: Candle[] }) {
  * 메인 페이지
  * ========================= */
 export default function DashboardPage() {
-  const [coinData, setCoinData] = useState<Record<string, CandleApiResponse>>({});
+  const [coinData, setCoinData] = useState<Record<string, CandlesResponse>>({});
   const [indexData, setIndexData] = useState<Record<string, CandleApiResponse>>({});
   const [symbolData, setSymbolData] = useState<Record<string, CandleApiResponse>>({});
   const [error, setError] = useState<string | null>(null);

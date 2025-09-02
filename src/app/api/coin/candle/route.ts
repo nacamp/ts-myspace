@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RSI, SMA } from 'trading-signals';
+import { computeRSISeriesAsc, computeSMASeriesAsc } from '@/lib/indicators';
+import { Candle, CandlesResponseSchema } from '@/shared';
 
 type UpbitDayCandleBase = {
   market: string;
@@ -10,40 +11,51 @@ type UpbitDayCandleBase = {
   trade_price: number;
 };
 
-type OutputCandle = {
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  sma15: number | null;
-  sma50: number | null;
-  rsi: number | null;
+export type BuildOptions = {
+  rsiPeriod: number;
+  count: number; // 최종 반환 개수 (최신→과거)
+  longestNeeded: number; // SMA50 등 가장 긴 윈도우
 };
 
-function toNumber(x: unknown): number {
-  if (x == null) return NaN;
-  // trading-signals BigLike 대응
-  // @ts-ignore
-  if (typeof x?.toNumber === 'function') return x.toNumber();
-  const n = Number.parseFloat(String(x));
-  return Number.isFinite(n) ? n : NaN;
-}
+export function buildOutputFromCandles(
+  candlesDescRaw: UpbitDayCandleBase[],
+  opts: BuildOptions,
+): { candles: Candle[]; lastRSI: number | null } {
+  const { rsiPeriod, count, longestNeeded } = opts;
 
-function computeRSISeriesAsc(pricesAsc: number[], period: number): (number | null)[] {
-  const rsi = new RSI(period);
-  return pricesAsc.map((p) => {
-    rsi.add(p); // ✅ add 사용
-    return rsi.isStable ? toNumber(rsi.getResultOrThrow()) : null;
-  });
-}
+  if (!Array.isArray(candlesDescRaw) || candlesDescRaw.length < longestNeeded) {
+    return { candles: [], lastRSI: null };
+  }
 
-function computeSMASeriesAsc(pricesAsc: number[], period: number): (number | null)[] {
-  const sma = new SMA(period);
-  return pricesAsc.map((p) => {
-    sma.add(p); // ✅ add 사용
-    return sma.isStable ? toNumber(sma.getResultOrThrow()) : null;
-  });
+  // 지표 입력 종가: 과거→최신
+  const closesAsc = [...candlesDescRaw].reverse().map((c) => c.trade_price);
+
+  // 전구간 계산
+  const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
+  const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
+  const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
+
+  // 최신 count개만 추출 후 최신→과거
+  const rsiDesc = rsiAsc.slice(-count).reverse();
+  const sma15Desc = sma15Asc.slice(-count).reverse();
+  const sma50Desc = sma50Asc.slice(-count).reverse();
+
+  // 원본 최신→과거 중 최신 count개
+  const latestCandlesDesc = candlesDescRaw.slice(0, count);
+
+  const candles: Candle[] = latestCandlesDesc.map((c, i) => ({
+    timestamp: c.candle_date_time_kst,
+    open: c.opening_price,
+    high: c.high_price,
+    low: c.low_price,
+    close: c.trade_price,
+    sma15: sma15Desc[i] ?? null,
+    sma50: sma50Desc[i] ?? null,
+    rsi: rsiDesc[i] ?? null,
+  }));
+
+  const lastRSI = candles[0]?.rsi ?? null;
+  return { candles, lastRSI };
 }
 
 export async function GET(req: NextRequest) {
@@ -69,62 +81,38 @@ export async function GET(req: NextRequest) {
     const candlesDescRaw: UpbitDayCandleBase[] = await res.json(); // 최신→과거
     if (!Array.isArray(candlesDescRaw) || candlesDescRaw.length < longestNeeded) {
       return NextResponse.json(
-        {
-          market,
+        CandlesResponseSchema.parse({
+          code: market,
           rsiPeriod,
           count: 0,
-          candles: [] as OutputCandle[],
+          candles: [] as Candle[],
           lastRSI: null,
           note: 'Not enough candles from upstream to compute SMA50/RSI',
-        },
+        }),
         { status: 200 },
       );
     }
 
-    // 지표 입력용 종가 시계열: 과거→최신
-    const closesAsc = candlesDescRaw.map((c) => c.trade_price).reverse();
-
-    // 지표 전 구간 계산(과거→최신)
-    const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
-    const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
-    const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
-
-    // 최신 count개만 추출 후 최신→과거 정렬
-    const rsiDesc = rsiAsc.slice(-count).reverse();
-    const sma15Desc = sma15Asc.slice(-count).reverse();
-    const sma50Desc = sma50Asc.slice(-count).reverse();
-
-    // 원본 캔들도 최신→과거 2개만
-    const latestCandlesDesc = candlesDescRaw.slice(0, count);
-
-    // 출력 매핑
-    const candles: OutputCandle[] = latestCandlesDesc.map((c, i) => ({
-      timestamp: c.candle_date_time_kst,
-      open: c.opening_price,
-      high: c.high_price,
-      low: c.low_price,
-      close: c.trade_price,
-      sma15: sma15Desc[i] ?? null,
-      sma50: sma50Desc[i] ?? null,
-      rsi: rsiDesc[i] ?? null,
-    }));
-
-    const lastRSI = candles[0]?.rsi ?? null;
+    const { candles, lastRSI } = buildOutputFromCandles(candlesDescRaw, {
+      rsiPeriod,
+      count,
+      longestNeeded,
+    });
 
     return NextResponse.json(
-      {
-        market,
+      CandlesResponseSchema.parse({
+        code: market,
         rsiPeriod,
         count: candles.length, // 항상 2
         candles, // 최신→과거
         lastRSI, // 가장 최신 캔들의 RSI
-      },
+      }),
       { status: 200 },
     );
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: 'Unexpected server error', detail: err?.message ?? String(err) },
-      { status: 500 },
-    );
+  } catch (err) {
+    if (err instanceof Error) {
+      return NextResponse.json({ error: 'Unexpected server error', detail: err.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Unexpected server error', detail: String(err) }, { status: 500 });
   }
 }
