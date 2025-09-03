@@ -103,7 +103,6 @@ async function fetchCoins(markets: readonly string[], count = LATEST_N, period =
       const r = await fetch(url);
       if (!r.ok) throw new Error(`[coin] ${m} HTTP ${r.status}`);
       const json = await r.json();
-      console.log(json);
       const parsed = CandlesResponseSchema.parse(json);
       return [m, parsed] as const;
       // const j: CandleApiResponse = await r.json();
@@ -120,14 +119,14 @@ async function fetchStockIndices(indices: readonly string[], period = 14) {
       const url = `/api/stock/index/${encodeURIComponent(code)}/candle?period=${period}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error(`[index] ${code} HTTP ${r.status}`);
-      // const json = await r.json();
-      // const parsed = CandlesResponseSchema.parse(json);
-      // return [code, parsed] as const;
-      const j: CandleApiResponse = await r.json();
-      return [code, j] as const;
+      const json = await r.json();
+      const parsed = CandlesResponseSchema.parse(json);
+      return [code, parsed] as const;
+      // const j: CandleApiResponse = await r.json();
+      // return [code, j] as const;
     }),
   );
-  return Object.fromEntries(res) as Record<string, CandleApiResponse>;
+  return Object.fromEntries(res) as Record<string, CandlesResponse>;
 }
 
 // 개별 종목
@@ -189,7 +188,7 @@ function MetricsGrid({ candles }: { candles: Candle[] }) {
  * ========================= */
 export default function DashboardPage() {
   const [coinData, setCoinData] = useState<Record<string, CandlesResponse>>({});
-  const [indexData, setIndexData] = useState<Record<string, CandleApiResponse>>({});
+  const [indexData, setIndexData] = useState<Record<string, CandlesResponse>>({});
   const [symbolData, setSymbolData] = useState<Record<string, CandleApiResponse>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
