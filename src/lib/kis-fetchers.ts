@@ -1,6 +1,7 @@
-// src/lib/kis-fetchers.ts
 import { env } from '@/config/env.server';
 import { formatDate } from './kis-utils';
+
+type KisDailyPriceRow = Record<string, string>;
 
 /* KIS: 지수 일별 시세 */
 export async function fetchIndexDailyPrice(indexCode: string, accessToken: string) {
@@ -27,7 +28,7 @@ export async function fetchIndexDailyPrice(indexCode: string, accessToken: strin
 
   if (!kisRes.ok) throw new Error(`[KIS] ${kisRes.status} ${await kisRes.text()}`);
   const data = await kisRes.json();
-  const rows: any[] = Array.isArray(data?.output2) ? data.output2 : [];
+  const rows: KisDailyPriceRow[] = Array.isArray(data?.output2) ? data.output2 : [];
   if (!rows.length) throw new Error('[KIS] empty rows');
   return rows;
 }
@@ -62,7 +63,7 @@ export async function fetchDailyItemCandles(symbol: string, accessToken: string)
 
   if (!kisRes.ok) throw new Error(`[KIS] ${kisRes.status} ${await kisRes.text()}`);
   const data = await kisRes.json();
-  const rows: any[] = Array.isArray(data?.output2) ? data.output2 : [];
+  const rows: KisDailyPriceRow[] = Array.isArray(data?.output2) ? data.output2 : [];
   if (!rows.length) throw new Error('[KIS] empty rows');
   return rows;
 }

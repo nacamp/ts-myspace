@@ -1,17 +1,26 @@
-// src/lib/kis-utils.ts
-export type KisRow = Record<string, any>;
+export type KisPrimitive = string | number | null | undefined;
+export type KisRow = Record<string, KisPrimitive>;
 
 /* 숫자 변환 (콤마/공백 안전) */
-export function toNumSafe(v: any): number {
+export function toNumSafe(v: unknown): number {
   if (v == null) return NaN;
   const n = Number(String(v).replace(/,/g, '').trim());
   return Number.isFinite(n) ? n : NaN;
 }
 
 /* 여러 후보 키 중 첫 값 반환 (toNum=true면 숫자 변환) */
-export function pick<T = string>(row: KisRow, keys: string[], toNum = false): any {
+// 1. 선언부: toNum=true면 number 리턴
+export function pick(row: KisRow, keys: string[], toNum: true): number;
+
+// 2. 선언부: toNum=false면 제너릭 T | undefined 리턴
+export function pick<T = string>(row: KisRow, keys: string[], toNum?: false): T | undefined;
+
+// 3. 구현부 (실제 함수 내용, 반환 타입은 합집합)
+export function pick<T = string>(row: KisRow, keys: string[], toNum = false): number | (T | undefined) {
   for (const k of keys) {
-    if (row[k] != null) return toNum ? toNumSafe(row[k]) : (row[k] as T);
+    if (row[k] != null) {
+      return toNum ? toNumSafe(row[k]) : (row[k] as T);
+    }
   }
   return toNum ? NaN : undefined;
 }

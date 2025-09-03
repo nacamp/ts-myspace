@@ -23,10 +23,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ symb
       const ymd = rowToYmd(r);
       return {
         timestamp: ymdToKstIso(ymd, '09:00:00'),
-        open: pick<number>(r, KIS_KEYS.open, true),
-        high: pick<number>(r, KIS_KEYS.high, true),
-        low: pick<number>(r, KIS_KEYS.low, true),
-        close: pick<number>(r, KIS_KEYS.close, true),
+        open: pick(r, KIS_KEYS.open, true),
+        high: pick(r, KIS_KEYS.high, true),
+        low: pick(r, KIS_KEYS.low, true),
+        close: pick(r, KIS_KEYS.close, true),
       };
     });
 
