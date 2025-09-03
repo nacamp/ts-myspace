@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/config/env.server';
 import { getKisToken } from '@/services/kis.server';
 import { Candle, CandlesResponseSchema } from '@/shared';
-import { computeRSISeriesAsc, computeSMASeriesAsc } from '@/lib/indicators';
+// import { computeRSISeriesAsc, computeSMASeriesAsc } from '@/lib/indicators';
+import { buildOutputFromCandlesDesc, type InputCandleDesc, type BuildOptions } from '@/lib/candle-builder';
 
 type KisRow = Record<string, any>;
 
@@ -62,61 +63,61 @@ const openKeys = ['bstp_nmix_oprc', 'idx_oprc', 'stck_oprc', 'opnprc'];
 const highKeys = ['bstp_nmix_hgpr', 'idx_hgpr', 'stck_hgpr', 'hgprc'];
 const lowKeys = ['bstp_nmix_lwpr', 'idx_lwpr', 'stck_lwpr', 'lwprc'];
 
-/* ===== BuildOptions & 계산기 (KIS 전용 1차 리팩터링) ===== */
-export type BuildOptions = {
-  rsiPeriod: number;
-  count: number; // 최종 반환 개수 (최신→과거)
-  longestNeeded: number; // 가장 긴 윈도우 (예: SMA50)
-};
+// /* ===== BuildOptions & 계산기 (KIS 전용 1차 리팩터링) ===== */
+// export type BuildOptions = {
+//   rsiPeriod: number;
+//   count: number; // 최종 반환 개수 (최신→과거)
+//   longestNeeded: number; // 가장 긴 윈도우 (예: SMA50)
+// };
 
 /**
  * KIS rows(최신→과거)를 받아 RSI/SMA 계산해 Candle[] 반환
  * - Upbit 쪽은 이 변경의 영향 없음 (2차에 공통화 예정)
  */
-export function buildOutputFromCandles(
-  rowsDesc: KisRow[],
-  opts: BuildOptions,
-): { candles: Candle[]; lastRSI: number | null } {
-  const { rsiPeriod, count, longestNeeded } = opts;
+// export function buildOutputFromCandles(
+//   rowsDesc: KisRow[],
+//   opts: BuildOptions,
+// ): { candles: Candle[]; lastRSI: number | null } {
+//   const { rsiPeriod, count, longestNeeded } = opts;
 
-  if (!Array.isArray(rowsDesc) || rowsDesc.length < longestNeeded) {
-    return { candles: [], lastRSI: null };
-  }
+//   if (!Array.isArray(rowsDesc) || rowsDesc.length < longestNeeded) {
+//     return { candles: [], lastRSI: null };
+//   }
 
-  // 지표 계산은 과거→현재
-  const rowsAsc = [...rowsDesc].reverse();
-  const closesAsc = rowsAsc.map((r) => pick<number>(r, closeKeys, true));
+//   // 지표 계산은 과거→현재
+//   const rowsAsc = [...rowsDesc].reverse();
+//   const closesAsc = rowsAsc.map((r) => pick<number>(r, closeKeys, true));
 
-  // 전구간 계산
-  const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
-  const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
-  const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
+//   // 전구간 계산
+//   const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
+//   const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
+//   const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
 
-  // 최신 count개만 추출 후 최신→과거로 반전
-  const rsiDesc = rsiAsc.slice(-count).reverse();
-  const sma15Desc = sma15Asc.slice(-count).reverse();
-  const sma50Desc = sma50Asc.slice(-count).reverse();
+//   // 최신 count개만 추출 후 최신→과거로 반전
+//   const rsiDesc = rsiAsc.slice(-count).reverse();
+//   const sma15Desc = sma15Asc.slice(-count).reverse();
+//   const sma50Desc = sma50Asc.slice(-count).reverse();
 
-  // 원본 최신→과거 중 최신 count개
-  const latestRowsDesc = rowsDesc.slice(0, count);
+//   // 원본 최신→과거 중 최신 count개
+//   const latestRowsDesc = rowsDesc.slice(0, count);
 
-  const candles: Candle[] = latestRowsDesc.map((r, i) => {
-    const ymd = rowToYmd(r);
-    return {
-      timestamp: ymdToKstIso(ymd, '09:00:00'), // 프론트 규칙: KST ISO
-      open: pick<number>(r, openKeys, true),
-      high: pick<number>(r, highKeys, true),
-      low: pick<number>(r, lowKeys, true),
-      close: pick<number>(r, closeKeys, true),
-      sma15: Number.isFinite(sma15Desc[i] as number) ? (sma15Desc[i] as number) : null,
-      sma50: Number.isFinite(sma50Desc[i] as number) ? (sma50Desc[i] as number) : null,
-      rsi: Number.isFinite(rsiDesc[i] as number) ? (rsiDesc[i] as number) : null,
-    };
-  });
+//   const candles: Candle[] = latestRowsDesc.map((r, i) => {
+//     const ymd = rowToYmd(r);
+//     return {
+//       timestamp: ymdToKstIso(ymd, '09:00:00'), // 프론트 규칙: KST ISO
+//       open: pick<number>(r, openKeys, true),
+//       high: pick<number>(r, highKeys, true),
+//       low: pick<number>(r, lowKeys, true),
+//       close: pick<number>(r, closeKeys, true),
+//       sma15: Number.isFinite(sma15Desc[i] as number) ? (sma15Desc[i] as number) : null,
+//       sma50: Number.isFinite(sma50Desc[i] as number) ? (sma50Desc[i] as number) : null,
+//       rsi: Number.isFinite(rsiDesc[i] as number) ? (rsiDesc[i] as number) : null,
+//     };
+//   });
 
-  const lastRSI = candles[0]?.rsi ?? null; // ✅ Upbit과 동일한 패턴
-  return { candles, lastRSI };
-}
+//   const lastRSI = candles[0]?.rsi ?? null; // ✅ Upbit과 동일한 패턴
+//   return { candles, lastRSI };
+// }
 
 /* ========== KIS 호출: inquire-index-daily-price (당일 기준) ========== */
 async function fetchIndexDailyPrice(indexCode: string, accessToken: string) {
@@ -169,11 +170,26 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     // 2) 날짜 기준 내림차순 정렬 (최신→과거)
     const rowsDesc = sortRowsDescByYmd(rowsRaw);
 
-    const { candles, lastRSI } = buildOutputFromCandles(rowsDesc, {
+    const inputDesc: InputCandleDesc[] = rowsDesc.map((r) => {
+      const ymd = rowToYmd(r);
+      return {
+        timestamp: ymdToKstIso(ymd, '09:00:00'),
+        open: pick<number>(r, openKeys, true),
+        high: pick<number>(r, highKeys, true),
+        low: pick<number>(r, lowKeys, true),
+        close: pick<number>(r, closeKeys, true),
+      };
+    });
+    const { candles, lastRSI } = buildOutputFromCandlesDesc(inputDesc, {
       rsiPeriod: period,
       count,
       longestNeeded,
     });
+    // const { candles, lastRSI } = buildOutputFromCandles(rowsDesc, {
+    //   rsiPeriod: period,
+    //   count,
+    //   longestNeeded,
+    // });
 
     return NextResponse.json(
       CandlesResponseSchema.parse({

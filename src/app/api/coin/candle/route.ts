@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { computeRSISeriesAsc, computeSMASeriesAsc } from '@/lib/indicators';
 import { Candle, CandlesResponseSchema } from '@/shared';
+import { buildOutputFromCandlesDesc, type InputCandleDesc, type BuildOptions } from '@/lib/candle-builder';
 
 type UpbitDayCandleBase = {
   market: string;
@@ -17,46 +18,46 @@ export type BuildOptions = {
   longestNeeded: number; // SMA50 등 가장 긴 윈도우
 };
 
-export function buildOutputFromCandles(
-  candlesDescRaw: UpbitDayCandleBase[],
-  opts: BuildOptions,
-): { candles: Candle[]; lastRSI: number | null } {
-  const { rsiPeriod, count, longestNeeded } = opts;
+// export function buildOutputFromCandles(
+//   candlesDescRaw: UpbitDayCandleBase[],
+//   opts: BuildOptions,
+// ): { candles: Candle[]; lastRSI: number | null } {
+//   const { rsiPeriod, count, longestNeeded } = opts;
 
-  if (!Array.isArray(candlesDescRaw) || candlesDescRaw.length < longestNeeded) {
-    return { candles: [], lastRSI: null };
-  }
+//   if (!Array.isArray(candlesDescRaw) || candlesDescRaw.length < longestNeeded) {
+//     return { candles: [], lastRSI: null };
+//   }
 
-  // 지표 입력 종가: 과거→최신
-  const closesAsc = [...candlesDescRaw].reverse().map((c) => c.trade_price);
+//   // 지표 입력 종가: 과거→최신
+//   const closesAsc = [...candlesDescRaw].reverse().map((c) => c.trade_price);
 
-  // 전구간 계산
-  const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
-  const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
-  const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
+//   // 전구간 계산
+//   const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
+//   const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
+//   const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
 
-  // 최신 count개만 추출 후 최신→과거
-  const rsiDesc = rsiAsc.slice(-count).reverse();
-  const sma15Desc = sma15Asc.slice(-count).reverse();
-  const sma50Desc = sma50Asc.slice(-count).reverse();
+//   // 최신 count개만 추출 후 최신→과거
+//   const rsiDesc = rsiAsc.slice(-count).reverse();
+//   const sma15Desc = sma15Asc.slice(-count).reverse();
+//   const sma50Desc = sma50Asc.slice(-count).reverse();
 
-  // 원본 최신→과거 중 최신 count개
-  const latestCandlesDesc = candlesDescRaw.slice(0, count);
+//   // 원본 최신→과거 중 최신 count개
+//   const latestCandlesDesc = candlesDescRaw.slice(0, count);
 
-  const candles: Candle[] = latestCandlesDesc.map((c, i) => ({
-    timestamp: c.candle_date_time_kst,
-    open: c.opening_price,
-    high: c.high_price,
-    low: c.low_price,
-    close: c.trade_price,
-    sma15: sma15Desc[i] ?? null,
-    sma50: sma50Desc[i] ?? null,
-    rsi: rsiDesc[i] ?? null,
-  }));
+//   const candles: Candle[] = latestCandlesDesc.map((c, i) => ({
+//     timestamp: c.candle_date_time_kst,
+//     open: c.opening_price,
+//     high: c.high_price,
+//     low: c.low_price,
+//     close: c.trade_price,
+//     sma15: sma15Desc[i] ?? null,
+//     sma50: sma50Desc[i] ?? null,
+//     rsi: rsiDesc[i] ?? null,
+//   }));
 
-  const lastRSI = candles[0]?.rsi ?? null;
-  return { candles, lastRSI };
-}
+//   const lastRSI = candles[0]?.rsi ?? null;
+//   return { candles, lastRSI };
+// }
 
 export async function GET(req: NextRequest) {
   try {
@@ -78,8 +79,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Upbit API error', detail: text }, { status: res.status });
     }
 
-    const candlesDescRaw: UpbitDayCandleBase[] = await res.json(); // 최신→과거
-    if (!Array.isArray(candlesDescRaw) || candlesDescRaw.length < longestNeeded) {
+    const raw: UpbitDayCandleBase[] = await res.json(); // 최신→과거
+    if (!Array.isArray(raw) || raw.length < longestNeeded) {
       return NextResponse.json(
         CandlesResponseSchema.parse({
           code: market,
@@ -93,11 +94,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { candles, lastRSI } = buildOutputFromCandles(candlesDescRaw, {
+    const inputDesc: InputCandleDesc[] = raw.map((c) => ({
+      timestamp: c.candle_date_time_kst,
+      open: c.opening_price,
+      high: c.high_price,
+      low: c.low_price,
+      close: c.trade_price,
+    }));
+
+    const { candles, lastRSI } = buildOutputFromCandlesDesc(inputDesc, {
       rsiPeriod,
       count,
       longestNeeded,
     });
+
+    // const { candles, lastRSI } = buildOutputFromCandles(candlesDescRaw, {
+    //   rsiPeriod,
+    //   count,
+    //   longestNeeded,
+    // });
 
     return NextResponse.json(
       CandlesResponseSchema.parse({
