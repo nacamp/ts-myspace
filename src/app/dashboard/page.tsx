@@ -1,32 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { CandlesResponse, CandlesResponseSchema } from '@/shared';
-
-/** =========================
- * 공통 타입 (Freqtrade OHLCV 호환)
- * ========================= */
-type Candle = {
-  timestamp: string; // "YYYY-MM-DDTHH:mm:ss" (KST 가정)
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  sma15: number | null;
-  sma50: number | null;
-  rsi: number | null;
-};
-
-type CandleApiResponse = {
-  market?: string; // coin
-  index?: string; // stock index (KIS)
-  symbol?: string; // stock item (KIS)
-  count: number;
-  period?: number;
-  rsiPeriod?: number;
-  lastRSI?: number | null;
-  candles: Candle[]; // 최신 → 과거
-};
+import { CandlesResponse, CandlesResponseSchema, Candle } from '@/shared';
 
 /** =========================
  * 상수/필드 정의
@@ -136,14 +111,14 @@ async function fetchStockItems(symbols: readonly string[], period = 14) {
       const url = `/api/stock/item/${encodeURIComponent(sym)}/candle?period=${period}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error(`[symbol] ${sym} HTTP ${r.status}`);
-      const j: CandleApiResponse = await r.json();
-      return [sym, j] as const;
-      // const json = await r.json();
-      // const parsed = CandlesResponseSchema.parse(json);
-      // return [sym, parsed] as const;
+      // const j: CandleApiResponse = await r.json();
+      // return [sym, j] as const;
+      const json = await r.json();
+      const parsed = CandlesResponseSchema.parse(json);
+      return [sym, parsed] as const;
     }),
   );
-  return Object.fromEntries(res) as Record<string, CandleApiResponse>;
+  return Object.fromEntries(res) as Record<string, CandlesResponse>;
 }
 
 /** =========================
@@ -189,7 +164,7 @@ function MetricsGrid({ candles }: { candles: Candle[] }) {
 export default function DashboardPage() {
   const [coinData, setCoinData] = useState<Record<string, CandlesResponse>>({});
   const [indexData, setIndexData] = useState<Record<string, CandlesResponse>>({});
-  const [symbolData, setSymbolData] = useState<Record<string, CandleApiResponse>>({});
+  const [symbolData, setSymbolData] = useState<Record<string, CandlesResponse>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -226,7 +201,7 @@ export default function DashboardPage() {
           {COIN_MARKETS.map((market) => {
             const data = coinData[market];
             if (!data) return null;
-            const period = data.period ?? data.rsiPeriod;
+            const period = data.rsiPeriod;
             return (
               <Card key={market} className="w-[420px]">
                 <CardHeader className="pb-3">
@@ -253,7 +228,7 @@ export default function DashboardPage() {
           {STOCK_INDICES.map((code) => {
             const data = indexData[code];
             if (!data) return null;
-            const period = data.period ?? data.rsiPeriod;
+            const period = data.rsiPeriod;
             const title = `${INDEX_LABEL[code] ?? code} (${code})`;
             return (
               <Card key={`idx-${code}`} className="w-[420px]">
@@ -275,7 +250,7 @@ export default function DashboardPage() {
           {STOCK_SYMBOLS.map((sym) => {
             const data = symbolData[sym];
             if (!data) return null;
-            const period = data.period ?? data.rsiPeriod;
+            const period = data.rsiPeriod;
             const title = `${SYMBOL_LABEL[sym] ?? sym} (${sym})`;
             return (
               <Card key={`sym-${sym}`} className="w-[420px]">
