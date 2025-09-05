@@ -1,12 +1,31 @@
 'use client';
 import React from 'react';
+import { TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { Candle, CandlesResponse } from '@/shared';
 
-/**************************************
- * DashboardMetricCard
- **************************************/
+type CandleWithFlags = Candle & {
+  isUpFromPrev?: boolean; // 어제 종가보다 상승했는가
+  isBullish?: boolean; // close > sma15 > sma50 조건 충족
+};
+
+export function enrichCandles(candles: Candle[]): CandleWithFlags[] {
+  return candles.map((c, i, arr) => {
+    const prev = arr[i + 1]; // 바로 다음이 어제
+    const isUpFromPrev = typeof c.close === 'number' && typeof prev?.close === 'number' && c.close > prev.close;
+
+    const isBullish =
+      typeof c.close === 'number' &&
+      typeof c.sma15 === 'number' &&
+      typeof c.sma50 === 'number' &&
+      c.close > c.sma15 &&
+      c.sma15 > c.sma50;
+
+    return { ...c, isUpFromPrev, isBullish };
+  });
+}
+
 export type DashboardMetricCardProps = {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
@@ -80,7 +99,7 @@ export function MetricsGrid({
   firstColWidth = 90,
   gapX = 2,
 }: {
-  candles: Candle[];
+  candles: CandleWithFlags[];
   firstColWidth?: number;
   gapX?: 1 | 2 | 3 | 4;
 }) {
@@ -94,16 +113,21 @@ export function MetricsGrid({
         'gap-x-3': gapX === 3,
         'gap-x-4': gapX === 4,
       })}
-      style={{ gridTemplateColumns: `${firstColWidth}px repeat(${cols}, minmax(0,1fr))` }}
+      style={{
+        gridTemplateColumns: `${firstColWidth}px repeat(${cols}, minmax(0,1fr))`,
+      }}
     >
       {FIELDS.map((field) => (
         <React.Fragment key={field.label}>
+          {/* Header column */}
           <div className="font-medium text-muted-foreground">{field.label}</div>
-          {latestN.map((candle) => {
+
+          {/* Data cells */}
+          {latestN.map((candle, i) => {
             if (field.kind === 'string') {
               return (
                 <div
-                  key={`date-${candle.timestamp}`}
+                  key={`cell-date-${candle.timestamp}`}
                   className="text-right font-normal text-foreground/70"
                   title={candle.timestamp + ' KST'}
                 >
@@ -112,9 +136,45 @@ export function MetricsGrid({
               );
             } else {
               const value = candle[field.key] as number | null | undefined;
+
+              // === close 전용: isUpFromPrev / isBullish 안전 계산 ===
+              if (field.key === 'close') {
+                const prevClose = latestN[i + 1]?.close;
+
+                const isUpFromPrev =
+                  candle.isUpFromPrev ??
+                  (typeof value === 'number' && typeof prevClose === 'number' && value > prevClose);
+
+                const isBullish =
+                  candle.isBullish ??
+                  (typeof candle.close === 'number' &&
+                    typeof candle.sma15 === 'number' &&
+                    typeof candle.sma50 === 'number' &&
+                    candle.close > candle.sma15 &&
+                    candle.sma15 > candle.sma50);
+
+                // 스타일: 상승이면 빨강, 불리시면 배경+굵기 추가 (빨강 유지)
+                const extra = cn(
+                  isUpFromPrev && 'text-destructive font-semibold',
+                  isBullish && 'bg-accent/10 text-destructive font-bold rounded-sm px-1',
+                );
+
+                return (
+                  <div
+                    key={`cell-close-${candle.timestamp}`}
+                    className={cn('flex items-center justify-end gap-1 tabular-nums font-mono', extra)}
+                  >
+                    {/* 아이콘 슬롯(고정폭) → 정렬 흔들림 방지 */}
+                    {isBullish && <TrendingUp className="w-4 h-4" />}
+                    <span>{formatNumber(value, 0, '-')}</span>
+                  </div>
+                );
+              }
+
+              // 기본 숫자 셀
               return (
-                <div key={`${field.key}-${candle.timestamp}`} className="text-right tabular-nums font-mono">
-                  {formatNumber(value, 0, '-')}
+                <div key={`cell-${field.key}-${candle.timestamp}`} className="text-right tabular-nums font-mono">
+                  {formatNumber(value, field.digits ?? 0, '-')}
                 </div>
               );
             }

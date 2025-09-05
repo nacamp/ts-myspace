@@ -1,11 +1,39 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { CandlesResponse, CandlesResponseSchema } from '@/shared';
-import { DashboardMetricCard, buildRsiSubtitle, MetricsGrid } from './DashboardMetricCard';
+import { DashboardMetricCard, buildRsiSubtitle, MetricsGrid, enrichCandles } from './DashboardMetricCard';
 
 const COIN_MARKETS = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'] as const;
 const STOCK_INDICES = ['0001'] as const;
 const STOCK_SYMBOLS = ['069500', '114260', '438330'] as const;
+
+const INDEX_LABEL = {
+  '0001': 'KOSPI',
+} satisfies Record<(typeof STOCK_INDICES)[number], string>;
+
+const SYMBOL_LABEL = {
+  '069500': 'KODEX 200',
+  '114260': 'KODEX 국고3년채',
+  '438330': 'TIGER 우량회사채액티브',
+} satisfies Record<(typeof STOCK_SYMBOLS)[number], string>;
+
+const COIN_LABEL = {
+  // 'KRW-BTC': 'Bitcoin',
+  // 'KRW-ETH': 'Ethereum',
+};
+
+const LABELS: Record<string, string> = {
+  ...INDEX_LABEL,
+  ...SYMBOL_LABEL,
+  ...COIN_LABEL,
+};
+
+/** 코드와 이름을 함께 반환: "이름 (코드)". 매핑 없으면 코드만 */
+export function displayLabel(id: string) {
+  const name = LABELS[id];
+  return name ? `${name} (${id})` : id;
+}
+
 const LATEST_N = 5;
 
 async function fetchCoins(markets: readonly string[], count = LATEST_N, period = 14) {
@@ -97,11 +125,12 @@ export default function DashboardPage() {
             if (!coinData[market]) return null;
             return (
               <DashboardMetricCard
-                title={market}
+                key={market}
+                title={displayLabel(market)}
                 subtitle={buildRsiSubtitle(coinData[market])}
                 className="w-[320px] gap-2"
               >
-                <MetricsGrid candles={coinData[market].candles} firstColWidth={50} gapX={2} />
+                <MetricsGrid candles={enrichCandles(coinData[market].candles)} firstColWidth={50} gapX={2} />
               </DashboardMetricCard>
             );
           })}
@@ -117,11 +146,12 @@ export default function DashboardPage() {
             if (!indexData[code]) return null;
             return (
               <DashboardMetricCard
-                title={code}
+                key={code}
+                title={displayLabel(code)}
                 subtitle={buildRsiSubtitle(indexData[code])}
                 className="w-[320px] gap-2"
               >
-                <MetricsGrid candles={indexData[code].candles} firstColWidth={50} gapX={2} />
+                <MetricsGrid candles={enrichCandles(indexData[code].candles)} firstColWidth={50} gapX={2} />
               </DashboardMetricCard>
             );
           })}
@@ -130,8 +160,13 @@ export default function DashboardPage() {
           {STOCK_SYMBOLS.map((sym) => {
             if (!symbolData[sym]) return null;
             return (
-              <DashboardMetricCard title={sym} subtitle={buildRsiSubtitle(symbolData[sym])} className="w-[320px] gap-2">
-                <MetricsGrid candles={symbolData[sym].candles} firstColWidth={50} gapX={2} />
+              <DashboardMetricCard
+                key={sym}
+                title={displayLabel(sym)}
+                subtitle={buildRsiSubtitle(symbolData[sym])}
+                className="w-[320px] gap-2"
+              >
+                <MetricsGrid candles={enrichCandles(symbolData[sym].candles)} firstColWidth={50} gapX={2} />
               </DashboardMetricCard>
             );
           })}

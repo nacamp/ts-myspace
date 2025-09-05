@@ -1,3 +1,13 @@
+# test(Jest)
+
+- install & config
+
+```bash
+yarn add -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-node @types/jest
+yarn add -D ts-jest
+vi jest.config.mjs
+```
+
 # prettier, eslint
 
 - install

@@ -1,5 +1,5 @@
 // src/services/kis/token.global.ts
-import { env } from "@/config/env.server";
+import { env } from '@/config/env.server';
 
 type Cache = { token: string | null; exp: number };
 const TOKEN_SKEW_MS = 2 * 60 * 1000; // 만료 2분 전부터 새로 받기
@@ -10,20 +10,22 @@ function getCache(): Cache {
     g.__kisTokenCache = { token: null, exp: 0 } as Cache;
     // --------------------------------------------------------
     // FIXME: remove hardcoded seed (개발/테스트용)
-    g.__kisTokenCache.token =
-      "...";
-    g.__kisTokenCache.exp = new Date("2025-08-29T10:19:20+09:00").getTime();
+    // g.__kisTokenCache.token =
+    //   '';
+    // g.__kisTokenCache.exp = new Date('2025-09-30T10:30:20+09:00').getTime();
     // --------------------------------------------------------
+  } else {
+    console.log('token: ', g.__kisTokenCache.token);
   }
   return g.__kisTokenCache;
 }
 
 async function fetchNewToken(): Promise<Cache> {
-  const res = await fetch("https://openapi.koreainvestment.com:9443/oauth2/tokenP", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const res = await fetch('https://openapi.koreainvestment.com:9443/oauth2/tokenP', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      grant_type: "client_credentials",
+      grant_type: 'client_credentials',
       appkey: env.KIS_APP_KEY,
       appsecret: env.KIS_APP_SECRET,
     }),
@@ -32,7 +34,7 @@ async function fetchNewToken(): Promise<Cache> {
   const data = await res.json();
   return {
     token: String(data.access_token),
-    exp: Date.now() + (Number(data.expires_in ?? 3600) * 1000),
+    exp: Date.now() + Number(data.expires_in ?? 3600) * 1000,
   };
 }
 
