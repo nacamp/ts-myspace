@@ -4,4 +4,16 @@
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": "explicit"
     },
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "[javascript]": {
+        "editor.tabSize": 2
+    },
+    "[typescript]": {
+        "editor.tabSize": 2
+    },
+    "[json]": {
+        "editor.tabSize": 2
+    }
 }
