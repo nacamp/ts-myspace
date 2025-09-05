@@ -19,7 +19,7 @@ export function DashboardMetricCard({ title, subtitle, children, className }: Da
     <Card className={className}>
       <CardHeader className="pb-3">
         <div className="text-lg font-semibold leading-tight">{title}</div>
-        {subtitle ? <div className="text-xs text-gray-500 mt-1 leading-snug">{subtitle}</div> : null}
+        {subtitle ? <div className="text-xs text-muted-foreground mt-1 leading-snug">{subtitle}</div> : null}
       </CardHeader>
       <CardContent className="text-sm overflow-x-auto">{children}</CardContent>
     </Card>
@@ -98,13 +98,13 @@ export function MetricsGrid({
     >
       {FIELDS.map((field) => (
         <React.Fragment key={field.label}>
-          <div className="font-medium text-gray-600">{field.label}</div>
+          <div className="font-medium text-muted-foreground">{field.label}</div>
           {latestN.map((candle) => {
             if (field.kind === 'string') {
               return (
                 <div
                   key={`date-${candle.timestamp}`}
-                  className="text-right font-normal text-gray-700"
+                  className="text-right font-normal text-foreground/70"
                   title={candle.timestamp + ' KST'}
                 >
                   {toDateLabelFromKstIso(candle.timestamp)}
