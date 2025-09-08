@@ -40,7 +40,7 @@ export async function fetchDailyItemCandles(symbol: string, accessToken: string)
 
   const end = formatDate(new Date());
   const startDateObj = new Date();
-  startDateObj.setDate(startDateObj.getDate() - 200);
+  startDateObj.setDate(startDateObj.getDate() - 100); // 100일가능, 참고로 100일이면 30일 이상은 토,일, 사실상 70일 미만
   const start = formatDate(startDateObj);
 
   url.searchParams.set('FID_COND_MRKT_DIV_CODE', 'J');
