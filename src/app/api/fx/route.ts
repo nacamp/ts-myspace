@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/config/env.server';
+import { FxResponse } from '@/shared';
 
 export async function GET() {
   const url = `http://apilayer.net/api/live?access_key=${env.CURRENCYLAYER_COM_APP_KEY}&currencies=KRW&source=USD&format=1`;
@@ -15,11 +16,11 @@ export async function GET() {
     return NextResponse.json({ error: 'API returned error' }, { status: 500 });
   }
 
-  const timestamp: number = data.timestamp;
-  const rate: number = data.quotes?.USDKRW;
+  const response: FxResponse = {
+    timestamp: data.timestamp,
+    rate: data.quotes?.USDKRW,
+    source: 'CURRENCYLAYER.COM',
+  };
 
-  return NextResponse.json({
-    timestamp,
-    rate,
-  });
+  return NextResponse.json(response);
 }

@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { CandlesResponse, CandlesResponseSchema } from '@/shared';
+import { CandlesResponse, CandlesResponseSchema, FxResponse } from '@/shared';
 import { DashboardMetricCard, buildRsiSubtitle, MetricsGrid, enrichCandles } from './DashboardMetricCard';
 import { FxCard } from './FxCard';
 
@@ -93,7 +93,7 @@ export default function DashboardPage() {
   const [symbolData, setSymbolData] = useState<Record<string, CandlesResponse>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fx, setFx] = React.useState<{ timestamp: number; rate: number; source?: string } | null>(null);
+  const [fx, setFx] = useState<FxResponse | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -130,11 +130,7 @@ export default function DashboardPage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">💱 FX</h2>
         <div className="flex flex-row gap-6 flex-wrap">
-          {fx && (
-            <FxCard
-              data={{ rate: fx.rate, timestamp: fx.timestamp, source: (fx as any).source ?? 'CURRENCYLAYER.COM' }}
-            />
-          )}
+          {fx && <FxCard data={{ rate: fx.rate, timestamp: fx.timestamp, source: fx.source ?? 'CURRENCYLAYER.COM' }} />}
         </div>
       </section>
       {/* ===== Coins ===== */}

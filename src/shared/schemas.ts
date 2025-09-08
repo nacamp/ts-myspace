@@ -19,5 +19,12 @@ export const CandlesResponseSchema = z.object({
   lastRSI: z.number().nullable().optional(),
 });
 
+export const FxResponseSchema = z.object({
+  timestamp: z.number(),
+  rate: z.number(),
+  source: z.string().optional(), // 옵션: API 제공자
+});
+
 export type Candle = z.infer<typeof CandleSchema>;
 export type CandlesResponse = z.infer<typeof CandlesResponseSchema>;
+export type FxResponse = z.infer<typeof FxResponseSchema>;
