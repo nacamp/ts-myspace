@@ -4,8 +4,10 @@ import type { Candle } from '@/shared';
 
 export type BuildOptions = {
   rsiPeriod: number;
+  shortMAPeriod: number; // 🔹 추가
+  longMAPeriod: number; // 🔹 추가
   count: number; // 최종 반환 개수 (최신→과거)
-  longestNeeded: number; // 가장 긴 윈도우(예: SMA50)
+  longestNeeded?: number; // (선택) 외부에서 강제로 지정하고 싶을 때만 사용
 };
 
 // 공통 입력 포맷: 최신→과거
@@ -25,9 +27,13 @@ export function buildOutputFromCandlesDesc(
   candlesDesc: InputCandleDesc[],
   opts: BuildOptions,
 ): { candles: Candle[]; lastRSI: number | null } {
-  const { rsiPeriod, count, longestNeeded } = opts;
+  const { rsiPeriod, shortMAPeriod, longMAPeriod, count, longestNeeded } = opts;
 
-  if (!Array.isArray(candlesDesc) || candlesDesc.length < longestNeeded) {
+  // 필요한 최소 윈도우를 내부에서 안전하게 계산
+  const requiredWindow = Math.max(rsiPeriod, shortMAPeriod, longMAPeriod);
+  const minNeeded = longestNeeded ? Math.max(requiredWindow, longestNeeded) : requiredWindow;
+
+  if (!Array.isArray(candlesDesc) || candlesDesc.length < minNeeded) {
     return { candles: [], lastRSI: null };
   }
 
@@ -35,13 +41,13 @@ export function buildOutputFromCandlesDesc(
   const closesAsc = [...candlesDesc].reverse().map((c) => c.close);
 
   const rsiAsc = computeRSISeriesAsc(closesAsc, rsiPeriod);
-  const sma15Asc = computeSMASeriesAsc(closesAsc, 15);
-  const sma50Asc = computeSMASeriesAsc(closesAsc, 50);
+  const shortMAAsc = computeSMASeriesAsc(closesAsc, shortMAPeriod);
+  const longMAAsc = computeSMASeriesAsc(closesAsc, longMAPeriod);
 
   // 최신 count개만 추출 → 최신→과거
   const rsiDesc = rsiAsc.slice(-count).reverse();
-  const sma15Desc = sma15Asc.slice(-count).reverse();
-  const sma50Desc = sma50Asc.slice(-count).reverse();
+  const shortMADesc = shortMAAsc.slice(-count).reverse();
+  const longMADesc = longMAAsc.slice(-count).reverse();
 
   // 원본 최신→과거 중 최신 count개
   const latestDesc = candlesDesc.slice(0, count);
@@ -52,8 +58,8 @@ export function buildOutputFromCandlesDesc(
     high: c.high,
     low: c.low,
     close: c.close,
-    sma15: Number.isFinite(sma15Desc[i] as number) ? (sma15Desc[i] as number) : null,
-    sma50: Number.isFinite(sma50Desc[i] as number) ? (sma50Desc[i] as number) : null,
+    shortMA: Number.isFinite(shortMADesc[i] as number) ? (shortMADesc[i] as number) : null,
+    longMA: Number.isFinite(longMADesc[i] as number) ? (longMADesc[i] as number) : null,
     rsi: Number.isFinite(rsiDesc[i] as number) ? (rsiDesc[i] as number) : null,
   }));
 

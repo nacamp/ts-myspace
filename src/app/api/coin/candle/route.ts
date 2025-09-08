@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
           count: 0,
           candles: [] as Candle[],
           lastRSI: null,
-          note: 'Not enough candles from upstream to compute SMA50/RSI',
+          note: 'Not enough candles from upstream to compute longMA/RSI',
         }),
         { status: 200 },
       );
@@ -55,9 +55,15 @@ export async function GET(req: NextRequest) {
     }));
 
     const { candles, lastRSI } = buildOutputFromCandlesDesc(inputDesc, {
+      shortMAPeriod: 15,
+      longMAPeriod: 50,
       rsiPeriod,
       count,
-      longestNeeded,
+      //longestNeeded,
+
+      // rsiPeriod,
+      // count,
+      // longestNeeded,
     });
 
     return NextResponse.json(

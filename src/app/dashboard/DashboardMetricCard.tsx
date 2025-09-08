@@ -7,7 +7,7 @@ import type { Candle, CandlesResponse } from '@/shared';
 
 type CandleWithFlags = Candle & {
   isUpFromPrev?: boolean; // 어제 종가보다 상승했는가
-  isBullish?: boolean; // close > sma15 > sma50 조건 충족
+  isBullish?: boolean; // close > shortMA > longMA 조건 충족
 };
 
 export function enrichCandles(candles: Candle[]): CandleWithFlags[] {
@@ -17,10 +17,10 @@ export function enrichCandles(candles: Candle[]): CandleWithFlags[] {
 
     const isBullish =
       typeof c.close === 'number' &&
-      typeof c.sma15 === 'number' &&
-      typeof c.sma50 === 'number' &&
-      c.close > c.sma15 &&
-      c.sma15 > c.sma50;
+      typeof c.shortMA === 'number' &&
+      typeof c.longMA === 'number' &&
+      c.close > c.shortMA &&
+      c.shortMA > c.longMA;
 
     return { ...c, isUpFromPrev, isBullish };
   });
@@ -60,8 +60,8 @@ const FIELDS: Field[] = [
   { kind: 'num', key: 'open', label: '시가' },
   { kind: 'num', key: 'high', label: '고가' },
   { kind: 'num', key: 'low', label: '저가' },
-  { kind: 'num', key: 'sma15', label: 'SMA15' },
-  { kind: 'num', key: 'sma50', label: 'SMA50' },
+  { kind: 'num', key: 'shortMA', label: 'shortMA' },
+  { kind: 'num', key: 'longMA', label: 'longMA' },
   { kind: 'num', key: 'rsi', label: 'RSI' },
 ];
 
@@ -148,10 +148,10 @@ export function MetricsGrid({
                 const isBullish =
                   candle.isBullish ??
                   (typeof candle.close === 'number' &&
-                    typeof candle.sma15 === 'number' &&
-                    typeof candle.sma50 === 'number' &&
-                    candle.close > candle.sma15 &&
-                    candle.sma15 > candle.sma50);
+                    typeof candle.shortMA === 'number' &&
+                    typeof candle.longMA === 'number' &&
+                    candle.close > candle.shortMA &&
+                    candle.shortMA > candle.longMA);
 
                 // 스타일: 상승이면 빨강, 불리시면 배경+굵기 추가 (빨강 유지)
                 const extra = cn(

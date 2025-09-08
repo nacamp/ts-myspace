@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
     const { code: indexCode = '0001' } = await params;
     const rsiPeriod = Math.max(2, Number(searchParams.get('period') ?? 14));
     const count = 2;
-    const longestNeeded = 50;
+    //const longestNeeded = 50;
 
     const accessToken = await getKisToken();
 
@@ -30,9 +30,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
     });
 
     const { candles, lastRSI } = buildOutputFromCandlesDesc(inputDesc, {
+      shortMAPeriod: 20,
+      longMAPeriod: 60,
       rsiPeriod,
       count,
-      longestNeeded,
+      //longestNeeded,
     });
 
     return NextResponse.json(

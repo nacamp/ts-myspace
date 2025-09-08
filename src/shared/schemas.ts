@@ -6,8 +6,8 @@ export const CandleSchema = z.object({
   high: z.number(),
   low: z.number(),
   close: z.number(),
-  sma15: z.number().nullable(),
-  sma50: z.number().nullable(),
+  shortMA: z.number().nullable(),
+  longMA: z.number().nullable(),
   rsi: z.number().nullable(),
 });
 
