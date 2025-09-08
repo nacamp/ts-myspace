@@ -2,6 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { CandlesResponse, CandlesResponseSchema } from '@/shared';
 import { DashboardMetricCard, buildRsiSubtitle, MetricsGrid, enrichCandles } from './DashboardMetricCard';
+import { FxCard } from './FxCard';
+
+async function fetchFx() {
+  const r = await fetch('/api/fx?base=USD&quotes=KRW', { cache: 'no-store' });
+  if (!r.ok) throw new Error(`[fx] HTTP ${r.status}`);
+  return r.json() as Promise<{ timestamp: number; rate: number; source?: string }>;
+}
 
 const COIN_MARKETS = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'] as const;
 const STOCK_INDICES = ['0001'] as const;
@@ -86,18 +93,21 @@ export default function DashboardPage() {
   const [symbolData, setSymbolData] = useState<Record<string, CandlesResponse>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fx, setFx] = React.useState<{ timestamp: number; rate: number; source?: string } | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [coins, indices, symbols] = await Promise.all([
+        const [coins, indices, symbols, fxNow] = await Promise.all([
           fetchCoins(COIN_MARKETS, LATEST_N, 14),
           fetchStockIndices(STOCK_INDICES, 14),
           fetchStockItems(STOCK_SYMBOLS, 14),
+          fetchFx(),
         ]);
         setCoinData(coins);
         setIndexData(indices);
         setSymbolData(symbols);
+        setFx(fxNow);
       } catch (e) {
         if (e instanceof Error) {
           setError(e.message);
@@ -116,7 +126,17 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold">📊 Dashboard</h1>
-
+      {/* ===== FX ===== */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">💱 FX</h2>
+        <div className="flex flex-row gap-6 flex-wrap">
+          {fx && (
+            <FxCard
+              data={{ rate: fx.rate, timestamp: fx.timestamp, source: (fx as any).source ?? 'CURRENCYLAYER.COM' }}
+            />
+          )}
+        </div>
+      </section>
       {/* ===== Coins ===== */}
       <section>
         <h2 className="text-xl font-semibold mb-3">🪙 Coins</h2>
