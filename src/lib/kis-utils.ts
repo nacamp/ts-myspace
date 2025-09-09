@@ -63,3 +63,42 @@ export const KIS_KEYS = {
 // stck_
 // 지수 일별 /uapi/domestic-stock/v1/quotations/inquire-index-daily-price
 // idx_ , bsop_date: 영업일자
+
+// 공통 키셋 사용해 값 읽기
+export function readNum(row: KisRow, keys: string[]): number {
+  for (const k of keys) {
+    if (k in row) {
+      const n = toNumSafe(row[k]);
+      if (!Number.isNaN(n)) return n;
+    }
+  }
+  return NaN;
+}
+
+// 더미(개장 전) 판단:
+// 1) 거래량=0 && 거래대금=0
+// 2) OHLC 모두 같음(= 움직임 없음) && (가능하면 직전 종가와도 동일)
+export function isPreOpenDummy(row: KisRow, prevRow?: KisRow) {
+  const o = readNum(row, KIS_KEYS.open);
+  const h = readNum(row, KIS_KEYS.high);
+  const l = readNum(row, KIS_KEYS.low);
+  const c = readNum(row, KIS_KEYS.close);
+
+  const volZero = toNumSafe(row.acml_vol ?? row.tvol ?? row.acc_trdvol ?? 0) === 0;
+  const valZero = toNumSafe(row.acml_tr_pbmn ?? row.tamt ?? row.acc_trdval ?? 0) === 0;
+
+  if (volZero && valZero) return true;
+
+  const ohlcAllEq = Number.isFinite(o) && o === h && h === l && l === c;
+
+  if (ohlcAllEq) {
+    if (prevRow) {
+      const prevClose = readNum(prevRow, KIS_KEYS.close);
+      if (Number.isFinite(prevClose) && prevClose === c) return true;
+    }
+    // prevRow가 없을 때도 개장 전엔 거의 항상 더미로 취급해도 무방
+    return true;
+  }
+
+  return false;
+}

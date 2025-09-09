@@ -3,7 +3,7 @@ import { getKisToken } from '@/services/kis.server';
 import { CandlesResponseSchema } from '@/shared';
 import { buildOutputFromCandlesDesc, type InputCandleDesc } from '@/lib/candle-builder';
 import { fetchIndexDailyPrice } from '@/lib/kis-fetchers';
-import { sortRowsDescByYmd, rowToYmd, ymdToKstIso, pick, KIS_KEYS } from '@/lib/kis-utils';
+import { sortRowsDescByYmd, rowToYmd, ymdToKstIso, pick, KIS_KEYS, isPreOpenDummy } from '@/lib/kis-utils';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   try {
@@ -18,7 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
     const rowsRaw = await fetchIndexDailyPrice(indexCode, accessToken);
     const rowsDesc = sortRowsDescByYmd(rowsRaw);
 
-    const inputDesc: InputCandleDesc[] = rowsDesc.map((r) => {
+    // 개장 전 더미 제거
+    const rowsDescClean = rowsDesc.length && isPreOpenDummy(rowsDesc[0], rowsDesc[1]) ? rowsDesc.slice(1) : rowsDesc;
+
+    const inputDesc: InputCandleDesc[] = rowsDescClean.map((r) => {
       const ymd = rowToYmd(r);
       return {
         timestamp: ymdToKstIso(ymd, '09:00:00'),
