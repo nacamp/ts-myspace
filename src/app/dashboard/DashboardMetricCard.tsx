@@ -152,21 +152,15 @@ export function MetricsGrid({
                     typeof candle.longMA === 'number' &&
                     candle.close > candle.shortMA &&
                     candle.shortMA > candle.longMA);
-
-                // 스타일: 상승이면 빨강, 불리시면 배경+굵기 추가 (빨강 유지)
-                const extra = cn(
-                  isUpFromPrev && 'text-destructive font-semibold',
-                  isBullish && 'bg-accent/10 text-destructive font-bold rounded-sm px-1',
-                );
+                const isUpFromPrevCss = cn(isUpFromPrev && 'text-destructive font-semibold');
 
                 return (
                   <div
                     key={`cell-close-${candle.timestamp}`}
-                    className={cn('flex items-center justify-end gap-1 tabular-nums font-mono', extra)}
+                    className="flex items-center justify-end gap-1 tabular-nums font-mono"
                   >
-                    {/* 아이콘 슬롯(고정폭) → 정렬 흔들림 방지 */}
-                    {isBullish && <TrendingUp className="w-4 h-4" />}
-                    <span>{formatNumber(value, 0, '-')}</span>
+                    {isBullish && <TrendingUp className="w-4 h-4 text-destructive" />}
+                    <span className={isUpFromPrevCss}>{formatNumber(value, 0, '-')}</span>
                   </div>
                 );
               }
