@@ -103,7 +103,7 @@ export function MetricsGrid({
   firstColWidth?: number;
   gapX?: 1 | 2 | 3 | 4;
 }) {
-  const latestN = candles.slice(0, LATEST_N);
+  const latestN = candles.slice(0, 2);
   const cols = latestN.length;
   return (
     <div

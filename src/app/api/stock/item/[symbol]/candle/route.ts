@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ symb
     const { symbol = '069500' } = await params;
 
     const rsiPeriod = Math.max(2, Number(searchParams.get('period') ?? 14));
-    const count = 2;
+    const count = 3;
     //const longestNeeded = 50;
 
     const accessToken = await getKisToken();

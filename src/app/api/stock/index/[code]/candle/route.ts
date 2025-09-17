@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
     const { searchParams } = new URL(req.url);
     const { code: indexCode = '0001' } = await params;
     const rsiPeriod = Math.max(2, Number(searchParams.get('period') ?? 14));
-    const count = 2;
+    const count = 3;
     //const longestNeeded = 50;
 
     const accessToken = await getKisToken();

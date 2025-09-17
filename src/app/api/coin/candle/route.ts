@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const market = searchParams.get('market') ?? 'KRW-BTC';
     const rsiPeriod = 14;
-    const count = 2; // ✅ 최근 2일치만 반환
+    const count = 3; // ✅ 최근 2일치만 반환
     const longestNeeded = 50;
     // 계산을 위해 윈도우 + 반환 건수만큼 확보
     const needed = longestNeeded + count;
