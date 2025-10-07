@@ -1,11 +1,11 @@
-"use client";
-import React, { useState, useEffect } from "react";
+'use client';
+import React, { useState, useEffect } from 'react';
 
-import { Button } from "@/components/ui/button";
-import { Freqtrade } from "@/generated/prisma";
+import { Button } from '@/components/ui/button';
+import { Freqtrade } from '@/generated/prisma';
 
-import Search, { SearchField } from "@/components/Search";
-import FreqtradeRow from "./FreqtradeRow";
+import Search, { SearchField } from '@/components/Search';
+import FreqtradeRow from './FreqtradeRow';
 
 export default function FreqtradeSheet() {
   const [rows, setRows] = useState<Partial<Freqtrade>[]>([]);
@@ -19,7 +19,7 @@ export default function FreqtradeSheet() {
       }
       return acc;
     },
-    { count: 0, total: 0 }
+    { count: 0, total: 0 },
   );
 
   const negativeStats = profits.reduce(
@@ -30,7 +30,7 @@ export default function FreqtradeSheet() {
       }
       return acc;
     },
-    { count: 0, total: 0 }
+    { count: 0, total: 0 },
   );
 
   const fetchData = async (filters: Record<string, string> = {}) => {
@@ -42,7 +42,7 @@ export default function FreqtradeSheet() {
     });
 
     const res = await fetch(`/api/freqtrade?${params.toString()}`, {
-      cache: "no-store",
+      cache: 'no-store',
     });
     const data = await res.json();
     const parsedData = data.map((item: Freqtrade) => ({
@@ -58,9 +58,9 @@ export default function FreqtradeSheet() {
       ...rows,
       {
         tradedAt: new Date(Date.now() - 9 * 60 * 60 * 1000),
-        strategy: "",
-        exchange: "",
-        coin: "",
+        strategy: '',
+        exchange: '',
+        coin: '',
         buyQty: 0,
         sellQty: 0,
         buyPrice: 0,
@@ -72,41 +72,45 @@ export default function FreqtradeSheet() {
   // search
   const [searchValues, setSearchValues] = useState<Record<string, string>>({});
   const fields: SearchField[] = [
-    { key: "date", label: "년도or년도일", type: "input" },
+    { key: 'date', label: '년도or년도일', type: 'input' },
     {
-      key: "strategy",
-      label: "Strategy",
-      type: "select",
+      key: 'strategy',
+      label: 'Strategy',
+      type: 'select',
       options: [
-        { label: "StrategyV1", value: "StrategyV1" },
-        { label: "StrategyV11", value: "StrategyV11" },
-        { label: "Draft", value: "Draft" },
+        { label: 'mv4hv1', value: 'mv4hv1' },
+        { label: 'mv1dv1', value: 'mv1dv1' },
+        { label: 'mv4hv2', value: 'mv4hv2' },
+        { label: 'mv1dv2', value: 'mv1dv2' },
+        { label: 'StrategyV1', value: 'StrategyV1' },
+        { label: 'StrategyV11', value: 'StrategyV11' },
+        { label: 'Draft', value: 'Draft' },
       ],
     },
     {
-      key: "exchange",
-      label: "Exchange",
-      type: "select",
+      key: 'exchange',
+      label: 'Exchange',
+      type: 'select',
       options: [
-        { label: "Bithumb", value: "Bithumb" },
-        { label: "Upbit", value: "Upbit" },
+        { label: 'Bithumb', value: 'Bithumb' },
+        { label: 'Upbit', value: 'Upbit' },
       ],
     },
     {
-      key: "coin",
-      label: "coin",
-      type: "select",
+      key: 'coin',
+      label: 'coin',
+      type: 'select',
       options: [
-        { label: "BTC", value: "BTC" },
-        { label: "ETH", value: "ETH" },
-        { label: "SOL", value: "SOL" },
-        { label: "ADA", value: "ADA" },
-        { label: "XRP", value: "XRP" },
-        { label: "LINK", value: "LINK" },
-        { label: "DOGE", value: "DOGE" },
-        { label: "IOST", value: "IOST" },
-        { label: "TRX", value: "TRX" },
-        { label: "SUI", value: "SUI" },
+        { label: 'BTC', value: 'BTC' },
+        { label: 'ETH', value: 'ETH' },
+        { label: 'SOL', value: 'SOL' },
+        { label: 'ADA', value: 'ADA' },
+        { label: 'XRP', value: 'XRP' },
+        { label: 'LINK', value: 'LINK' },
+        { label: 'DOGE', value: 'DOGE' },
+        { label: 'IOST', value: 'IOST' },
+        { label: 'TRX', value: 'TRX' },
+        { label: 'SUI', value: 'SUI' },
       ],
     },
   ];
@@ -160,22 +164,22 @@ export default function FreqtradeSheet() {
       <Button onClick={handleAddRow}>+ Add Row</Button>
       <div className="flex mt-3 justify-end font-bold space-y-1 space-x-3 ">
         <div>
-          ✅ Total Profit:{" "}
+          ✅ Total Profit:{' '}
           {profits
             .reduce((acc, val) => acc + val, 0)
-            .toLocaleString("en-US", {
+            .toLocaleString('en-US', {
               maximumFractionDigits: 0,
             })}
         </div>
         <div>
-          🟢 Positive ({positiveStats.count}건):{" "}
-          {positiveStats.total.toLocaleString("en-US", {
+          🟢 Positive ({positiveStats.count}건):{' '}
+          {positiveStats.total.toLocaleString('en-US', {
             maximumFractionDigits: 0,
           })}
         </div>
         <div>
-          🔴 Negative ({negativeStats.count}건):{" "}
-          {negativeStats.total.toLocaleString("en-US", {
+          🔴 Negative ({negativeStats.count}건):{' '}
+          {negativeStats.total.toLocaleString('en-US', {
             maximumFractionDigits: 0,
           })}
         </div>
