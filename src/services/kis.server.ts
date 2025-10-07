@@ -1,4 +1,3 @@
-// src/services/kis/token.service.ts
 import prisma from '@/lib/prisma';
 import { env } from '@/config/env.server';
 
