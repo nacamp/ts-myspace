@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getKisToken } from '@/services/kis.server';
+import { readKisTokenFromDB } from '@/services/kis.server';
 import { CandlesResponseSchema } from '@/shared';
 import { buildOutputFromCandlesDesc, type InputCandleDesc } from '@/lib/candle-builder';
 import { fetchDailyItemCandles } from '@/lib/kis-fetchers';
@@ -14,7 +14,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ symb
     const count = 3;
     //const longestNeeded = 50;
 
-    const accessToken = await getKisToken();
+    const accessToken = await readKisTokenFromDB();
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Token missing or expired' }, { status: 401 });
+    }
 
     const rowsRaw = await fetchDailyItemCandles(symbol, accessToken);
     const rowsDesc = sortRowsDescByYmd(rowsRaw);

@@ -1,26 +1,15 @@
-// src/services/kis/token.global.ts
+// src/services/kis/token.service.ts
+import prisma from '@/lib/prisma';
 import { env } from '@/config/env.server';
 
-type Cache = { token: string | null; exp: number };
-const TOKEN_SKEW_MS = 2 * 60 * 1000; // 만료 2분 전부터 새로 받기
+const PROVIDER = 'kis';
+const TOKEN_SKEW_MS = 2 * 60 * 1000; // 만료 2분 전부터 갱신
 
-function getCache(): Cache {
-  const g = globalThis as any;
-  if (!g.__kisTokenCache) {
-    g.__kisTokenCache = { token: null, exp: 0 } as Cache;
-    // --------------------------------------------------------
-    // FIXME: remove hardcoded seed (개발/테스트용)
-    // g.__kisTokenCache.token =
-    //   '';
-    // g.__kisTokenCache.exp = new Date('2025-09-30T10:30:20+09:00').getTime();
-    // --------------------------------------------------------
-  } else {
-    console.log('token: ', g.__kisTokenCache.token);
-  }
-  return g.__kisTokenCache;
-}
+type KisTokenResp = { access_token: string; expires_in?: number };
 
-async function fetchNewToken(): Promise<Cache> {
+const isValid = (expAt: Date) => Date.now() + TOKEN_SKEW_MS < expAt.getTime();
+
+async function requestKisTokenFromAPI(): Promise<{ token: string; expAt: Date }> {
   const res = await fetch('https://openapi.koreainvestment.com:9443/oauth2/tokenP', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -30,26 +19,45 @@ async function fetchNewToken(): Promise<Cache> {
       appsecret: env.KIS_APP_SECRET,
     }),
   });
-  if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  return {
-    token: String(data.access_token),
-    exp: Date.now() + Number(data.expires_in ?? 3600) * 1000,
-  };
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`[KIS token] HTTP ${res.status} ${text}`);
+  }
+  const data = (await res.json()) as KisTokenResp;
+  const ttlSec = Number(data.expires_in ?? 3600);
+  return { token: String(data.access_token), expAt: new Date(Date.now() + ttlSec * 1000) };
 }
 
-export async function getKisToken(): Promise<string> {
-  const cache = getCache();
-  const now = Date.now();
+export async function ensureKisToken(): Promise<{ token: string; from: 'cache' | 'refresh' }> {
+  const rec = await prisma.apiToken.findUnique({ where: { provider: PROVIDER } });
 
-  // 캐시에 있고 아직 유효하면 그대로 사용
-  if (cache.token && now + TOKEN_SKEW_MS < cache.exp) {
-    return cache.token;
+  if (rec && rec.token && isValid(rec.expAt)) {
+    return { token: rec.token, from: 'cache' };
   }
 
-  // 아니면 새 토큰 요청
-  const fresh = await fetchNewToken();
-  cache.token = fresh.token;
-  cache.exp = fresh.exp;
-  return cache.token!;
+  const fresh = await requestKisTokenFromAPI();
+  await prisma.apiToken.upsert({
+    where: { provider: PROVIDER },
+    update: { token: fresh.token, expAt: fresh.expAt },
+    create: { provider: PROVIDER, token: fresh.token, expAt: fresh.expAt },
+  });
+
+  return { token: fresh.token, from: 'refresh' };
+}
+
+export async function readKisTokenFromDB(): Promise<string | null> {
+  const rec = await prisma.apiToken.findUnique({ where: { provider: PROVIDER } });
+  if (!rec || !rec.token || !isValid(rec.expAt)) return null;
+  return rec.token;
+}
+
+/** 강제 갱신(관리/디버그용) */
+export async function forceRefreshKisToken(): Promise<string> {
+  const fresh = await requestKisTokenFromAPI();
+  await prisma.apiToken.upsert({
+    where: { provider: PROVIDER },
+    update: { token: fresh.token, expAt: fresh.expAt },
+    create: { provider: PROVIDER, token: fresh.token, expAt: fresh.expAt },
+  });
+  return fresh.token;
 }
