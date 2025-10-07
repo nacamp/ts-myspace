@@ -114,6 +114,27 @@ model CoinTimeline {
   cross50   Boolean
 }
 
+model Todo {
+  id        Int      @id @default(autoincrement())
+  date      String
+  content   String
+  order     Int
+  done      Boolean  @default(false)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date, order])
+}
+
+model ApiToken {
+  provider  String   @id            // 예: "kis"
+  token     String   @db.VarChar(1024)
+  expAt     DateTime                // 만료 시각(absolute)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expAt])
+}
 // installment deposit
 // Time Deposit 
