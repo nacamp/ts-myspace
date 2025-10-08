@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
+import Search, { SearchField } from '@/components/Search';
+
 const TodoBoard = dynamic(() => import('@/components/TodoBoard'), { ssr: false });
 
 type SummaryWithPreviews = {
@@ -22,6 +24,7 @@ export default function TodoHomePage() {
   const [loading, setLoading] = useState(true);
   const [openItems, setOpenItems] = useState<string[]>([]);
   const [bootstrappedDates, setBootstrappedDates] = useState<Set<string>>(new Set());
+  const [isFiltered, setIsFiltered] = useState(false); // ← 검색 모드 플래그
 
   const today = dayjs().format('YYYY-MM-DD');
 
@@ -32,23 +35,29 @@ export default function TodoHomePage() {
         const r = await fetch('/api/todo/summary-with-previews?k=3', { cache: 'no-store' });
         const data = (await r.json()) as SummaryWithPreviews[];
         setRowsRaw(data);
+        setIsFiltered(false); // 초기 진입은 비검색 모드
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  // 오늘이 없다면 가상 행 추가
+  // 오늘이 없다면 가상 행 추가 (단, 검색 모드가 아닐 때만)
   const rows = useMemo<SummaryWithPreviews[]>(() => {
-    if (rowsRaw.some((s) => s.date === today)) return rowsRaw;
-    return [{ date: today, total: 0, done: 0, previews: [] }, ...rowsRaw];
-  }, [rowsRaw, today]);
+    const hasToday = rowsRaw.some((s) => s.date === today);
+    if (!isFiltered && !hasToday) {
+      return [{ date: today, total: 0, done: 0, previews: [] }, ...rowsRaw];
+    }
+    return rowsRaw;
+  }, [rowsRaw, today, isFiltered]);
 
-  // 최초 진입 시 오늘 펼치기
+  // 최초 진입 시(비검색 모드) 오늘이 실제 rows에 있을 때만 자동 오픈
   useEffect(() => {
     if (rows.length === 0) return;
+    if (isFiltered) return; // 검색 중이면 자동 오픈 X
+    if (!rows.some((r) => r.date === today)) return; // rows에 today가 실제로 있을 때만
     setOpenItems((prev) => (prev.includes(today) ? prev : [today, ...prev]));
-  }, [rows, today]);
+  }, [rows, today, isFiltered]);
 
   // Quick Add (오늘/빈 날짜에서 첫 항목 생성 후 TodoBoard로 전환)
   const [quickContent, setQuickContent] = useState<Record<string, string>>({});
@@ -61,7 +70,7 @@ export default function TodoHomePage() {
     });
     if (!res.ok) return;
 
-    // 요약 데이터 즉시 갱신: total + 1, previews에 방금 내용 한 개 추가(미완료 우선)
+    // 요약 데이터 즉시 갱신
     setRowsRaw((prev) => {
       const next = [...prev];
       const idx = next.findIndex((x) => x.date === date);
@@ -80,8 +89,67 @@ export default function TodoHomePage() {
     setQuickContent((c) => ({ ...c, [date]: '' }));
   };
 
+  // search
+  const [searchValues, setSearchValues] = useState<Record<string, string>>({});
+  const fields: SearchField[] = [{ key: 'date', label: '년월(YYYYMM)', type: 'input' }];
+
+  const handleSearchChange = (key: string, val: string) => {
+    setSearchValues((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const normalizeToYYYYMM = (s: string) => s.replace(/[^\d]/g, '').slice(0, 6); // 숫자만 6자리
+  const toDashed = (yyyymm: string) => (yyyymm.length === 6 ? `${yyyymm.slice(0, 4)}-${yyyymm.slice(4, 6)}` : '');
+
+  const fetchMonthSummary = async (monthYYYYMM: string) => {
+    const yyyymm = normalizeToYYYYMM(monthYYYYMM);
+    const month = toDashed(yyyymm); // 'YYYY-MM'
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      throw new Error('월 형식이 올바르지 않습니다. 예) 202510 또는 2025-10');
+    }
+    const r = await fetch(`/api/todo/summary-with-previews?yyyymm=${yyyymm}&k=3`, { cache: 'no-store' });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      throw new Error(`[month/summary] HTTP ${r.status} ${text}`);
+    }
+    const data = (await r.json()) as SummaryWithPreviews[];
+    return { data, month };
+  };
+
+  const handleSearch = async () => {
+    setLoading(true);
+    try {
+      const monthInput = searchValues.date ?? '';
+      const { data, month } = await fetchMonthSummary(monthInput);
+
+      // 월 검색 결과 반영 + 검색 모드 진입
+      setRowsRaw(data);
+      setIsFiltered(true);
+
+      // 그 달에 오늘이 포함되면 오늘을, 아니면 결과 첫 날짜를 오픈
+      const todayInMonth = data.some((x) => x.date.startsWith(month));
+      if (data.length > 0) {
+        const firstDate = data[0].date;
+        setOpenItems(todayInMonth ? [today] : [firstDate]);
+      } else {
+        setOpenItems([]);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
+      <Search
+        title="월별 검색"
+        fields={fields}
+        values={searchValues}
+        onChange={handleSearchChange}
+        onSearch={handleSearch}
+      />
       <h1 className="text-2xl font-bold">📅 Todo by Date</h1>
 
       <Card className="shadow-sm">
