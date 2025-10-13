@@ -36,15 +36,7 @@ function loadPersist(): Persisted {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { running: false, accumulated: 0, startAt: null };
-    const p = JSON.parse(raw) as Persisted;
-
-    // running 중이던 상태 복원 시, 새로고침 순간부터 지금까지 추가 반영
-    if (p.running && p.startAt) {
-      const now = Date.now();
-      const delta = Math.max(0, now - p.startAt);
-      return { running: true, accumulated: p.accumulated, startAt: now - delta + delta }; // 그대로
-    }
-    return p;
+    return JSON.parse(raw) as Persisted;
   } catch {
     return { running: false, accumulated: 0, startAt: null };
   }
@@ -63,10 +55,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [{ accumulated, startAt, running }, setCore] = useState<Persisted>(() => loadPersist());
   const [hudOpen, setHudOpen] = useState(false);
   const rafRef = useRef<number | null>(null);
-  const [elapsedMs, setElapsedMs] = useState<number>(() => {
-    if (running && startAt) return accumulated + (Date.now() - startAt);
-    return accumulated;
-  });
+
+  // 🔧 초기 렌더에선 Date.now() 사용 금지 → 하이드레이션 안전
+  const [elapsedMs, setElapsedMs] = useState<number>(() => accumulated);
+
+  // 🔧 마운트 후 한 번 실제 경과 반영 (running 중이었으면 지금까지 경과 추가)
+  useEffect(() => {
+    if (running && startAt) {
+      setElapsedMs(accumulated + (Date.now() - startAt));
+    } else {
+      setElapsedMs(accumulated);
+    }
+  }, []); // 최초 한 번
 
   // UI 표시 업데이트: requestAnimationFrame으로 부드럽게 (1초 단위면 setInterval(1000)로 바꿔도 됨)
   const tick = useCallback(() => {
@@ -101,6 +101,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     if (running) return;
     const now = Date.now();
     setCore((prev) => ({ ...prev, running: true, startAt: now }));
+    // 선택: 즉시 표시 업데이트
+    setElapsedMs((prevMs) => prevMs); // noop (rAF가 곧 갱신)
   }, [running]);
 
   const pause = useCallback(() => {
@@ -108,12 +110,16 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     setCore((prev) => {
       const add = prev.startAt ? now - prev.startAt : 0;
-      return { running: false, startAt: null, accumulated: prev.accumulated + add };
+      const next = { running: false, startAt: null, accumulated: prev.accumulated + add };
+      return next;
     });
-  }, [running]);
+    // 선택: 멈춤 즉시 누적 반영
+    setElapsedMs(accumulated + (startAt ? now - startAt : 0));
+  }, [running, accumulated, startAt]);
 
   const reset = useCallback(() => {
     setCore({ running: false, accumulated: 0, startAt: null });
+    setElapsedMs(0); // 🔧 표시도 함께 0으로
   }, []);
 
   const toggle = useCallback(() => {
